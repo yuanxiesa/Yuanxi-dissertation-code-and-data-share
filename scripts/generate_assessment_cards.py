@@ -48,6 +48,10 @@ def card_tex(row, metadata):
         raise ValueError(f"Invalid verdict for {row['DOI']}")
     surname = metadata['Author'].split(';')[0].split(',')[0].strip()
     author = surname + (' et al.' if ';' in metadata['Author'] else '')
+    publication_label = f"{author} ({metadata['Publication Year'].strip()})"
+    messages = [m.replace('Publication ' + row['tag'] + ' (DOI:',
+                          'Publication ' + publication_label + ' (DOI:')
+                for m in messages]
     title = html.unescape(re.sub(r'<[^>]+>', '', metadata['Title']))
     images = [ROOT / 'img' / name for flag, name in DIAGRAMS.items() if row[flag] == 'y']
     if images:
@@ -74,13 +78,13 @@ Default inference remains defeasible.\vspace{14pt}\end{minipage}}'''
 \vspace{8pt}{\color{ink}\hrule}\vspace{12pt}
 \begin{minipage}[t]{0.46\linewidth}\vspace{0pt}\RaggedRight
 \textbf{Justifications}\par
-''' + '\n\n'.join(message_tex(m) for m in messages) + r'''
+''' + '\n\\par\\vspace{\\baselineskip}\n'.join(message_tex(m) for m in messages) + r'''
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}\vspace{0pt}
-\textbf{Reasoning visualization}\par
+\textbf{Reasoning Visualization}\par
 ''' + visualization + r'''
 \end{minipage}\par\vspace{16pt}{\color{ink}\hrule}\vspace{9pt}
-{\large\bfseries Final verdict: ''' + escape(row['verdict']) + r'''}
+{\large\bfseries Verdict: ''' + escape(row['verdict']) + r'''}
 \end{minipage}}
 \end{preview}\end{document}
 '''
