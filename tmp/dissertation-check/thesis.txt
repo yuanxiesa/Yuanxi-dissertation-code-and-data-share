@@ -1,0 +1,2873 @@
+                          Unreliability Propagation:
+                  Conceptual Foundations for Justified Action
+
+                                          by
+
+                                      Yuanxi Fu
+
+
+
+
+                                     Dissertation
+
+                  Submitted in partial fulfillment of the requirements
+       for the degree of Doctor of Philosophy in School of Information Sciences
+                            in the Graduate College of the
+                    University of Illinois Urbana-Champaign, 2027
+                                   Urbana, Illinois
+
+
+
+Doctoral Committee:
+      Associate Professor Jodi Schneider, Chair
+      Professor Bertram Ludäscher
+      Professor Allen Renear
+                                         Abstract
+
+
+Knowledge production is cumulative: publications, datasets, methods, software, and
+other intellectual resources depend on prior work. Yet when one resource is found
+unreliable, when should the knowledge products that depends on it be treated? The
+scholarly communication system has only begun to grapple with regulation on the
+grounds of dependencies, such as citations to retracted articles and publications utilizing
+improper datasets, and we often found it lacking clear criteria for making such judgments
+and falling short in explaining the decisions to affected authors and the public.
+   This dissertation focuses on the issue of constructing proper justifications for
+scrutinizing or sanctioning an entity that depends on another entity known to be
+unreliable. We grounded our investigation in understanding the notion of unreliability
+propagation: the circumstances where the unreliability of one entity leads to concern
+about another. We conducted a conceptual analysis to investigate the individually
+necessary and jointly sufficient conditions for unreliability to propagate between entities,
+regardless of their type. We also curated a dataset of 284 publications citing a widely
+used computational chemistry protocol affected by a code glitch, with expert annotations
+of their risk of unreliability propagation and supporting reasoning. Drawing from the
+conceptual analysis and the annotation, we formulated the process of constructing
+justifications as defeasible reasoning and developed computational pipelines that generate
+risk assessments with justifications expressed in natural language and formal logic.
+   This dissertation contributes to information science an understanding of how trust to
+information-bearing objects is interconnected. It also contributes a principled
+methodology to assess unreliability propagation and make decisions about scrutinizing or
+sanctioning dependent knowledge products more explicit, communicable, and open to
+debate.
+
+
+                                             1
+                                   Acknowledgements
+
+
+My foremost thanks go to my advisor, Jodi Schneider. She influenced this dissertation in
+so many ways that cannot be really counted. To list a few: the problem originated in our
+first collaboration. Later, she supported the paper in which we coined the term
+“unreliability propagation.” I was also fortunate to be involved in writing a review on
+epistemic harm and post-retraction citations with her. That experience helped me
+recognize some of the gaps in our understanding and measurement of the downstream
+impact of retracted science, which are closely related to the problem addressed in this
+dissertation. I also thank her for keeping sending relevant cases on my way, one of which,
+the autism dataset retraction case, helped me to see the tension within the phenomenon
+and subsequently sharpened the focus of this dissertation. I also thank her for
+demonstrating excellent data management practice and publishing, which allows me to
+go back to retrieve a lot of vital information for this dissertation
+   For the intellectual influence that shaped this dissertation, I must foremost thank
+Jonathan Livengood and Allen Renear. Jonathan allowed me to sit in on his theory of
+knowledge class and graduate logic seminar. I cannot imagine being able to read
+philosophy papers and think, more or less, like a philosopher without that two-semester
+immersive experience. Allen contributed to the actual development of this dissertation
+more than anyone else, helping me avoid what might otherwise have been a slow-motion
+train wreck. I only recently began to appreciate more fully how he approaches problems,
+and learning and practicing formal methods with him opened up new ways for me to
+think about problems not just in research but also in life. It is a wonderful intellectual
+experience to work with you, Allen!
+   There are other intellectual influences that cannot go unmentioned. I want to thank
+Peter Darch. Ethics remains central to this dissertation, and my journey with ethics
+began in his course on data ethics and policy and continued when I co-instructed the
+
+
+                                              2
+same course with him a few years later. My interest in ethics is closely connected to my
+interest in argumentation. I thank Scott Jacobs and Sally Jackson for their introductory
+courses on argumentation theories and analysis. I also thank Allen for filling in the
+foundations in logic theories that were less emphasized in Sally and Scott’s more
+pragmatics- and rhetoric-oriented courses. I am so happy that I was eventually able to
+bring in those pieces into the dissertation. I would also like to extend special thanks to
+Nigel Bosch and Yang Zhang, from whom I learned a great deal about machine learning.
+   I also thank Heng Zheng, who helped lead the JCDL 2024 paper and kept a complex,
+multifaceted project together while handling many other tasks alongside it. The WJH
+protocol dataset used in this dissertation was made possible by Heng, Jodi, Elle Vandel,
+and Maria Janina Sarol. I especially thank Nihar Shah for suggesting that I apply LLMs
+to the WJH protocol code-glitch case. I also thank Bertram Ludäscher, Martin
+Caminada, Halil Kılıçoğlu, and anonymous reviewers of Sci-K for improving work
+described in Chapter 5.
+   For financial support, I thank the Beta Phi Mu honor society for awarding me the
+2024–2025 Eugene Garfield Doctoral Dissertation Fellowship. I hope that this
+dissertation lives up to the name of Eugene Garfield. The JCDL 2024 paper that included
+in this dissertation was supported by Alfred P. Sloan Foundation grant G-2022-19409,
+Reducing the Inadvertent Spread of Retracted Science II: Research and Development
+towards the Communication of Retractions, Removals, and Expressions of Concern.
+
+
+
+
+                                             3
+                                      Contents
+
+Chapter 1 Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     6
+   1.1   Background and motivations . . . . . . . . . . . . . . . . . . . . . . . .        6
+   1.2   Research questions and approaches . . . . . . . . . . . . . . . . . . . . .       9
+   1.3   The organization of the remaining chapters . . . . . . . . . . . . . . . .        10
+   1.4   A summary of contributions* . . . . . . . . . . . . . . . . . . . . . . . .       10
+Chapter 2 Related Work . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       11
+   2.1   Cases that inspired the term “unreliability propagation” . . . . . . . . .        11
+   2.2   Policies and measures to address unreliability propagation . . . . . . . .        15
+   2.3   The idea of reliability . . . . . . . . . . . . . . . . . . . . . . . . . . . .   21
+   2.4   Context dependency of reliability* . . . . . . . . . . . . . . . . . . . . .      24
+   2.5   Text examples reflecting a sense of unreliability propagation . . . . . . .       25
+   2.6   Models of justification . . . . . . . . . . . . . . . . . . . . . . . . . . . .   26
+   2.7   From Chain-of-Thought prompting to reasoning models* . . . . . . . .              29
+   2.8   Chapter summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       29
+Chapter 3 Methodology Preambles . . . . . . . . . . . . . . . . . . . . . . . . . .        31
+   3.1   The method of analysis . . . . . . . . . . . . . . . . . . . . . . . . . . .      31
+   3.2   Four interpretations of the conditional statement “if 𝑃 then 𝑄” . . . . .         34
+   3.3   Properties of counterfactual conditionals . . . . . . . . . . . . . . . . . .     38
+Chapter 4 An Conceptual Analysis of the Notion of Unreliability Propagation .              42
+   4.1   The pre-analytical intuition of unreliability propagation . . . . . . . . .       42
+   4.2   The analysandum . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       42
+   4.3   Analysis-by-decomposition: from pre-analytical intuition to conditionals          42
+   4.4   Analysis-by-transformation: critique of the four interpretations . . . . .        43
+   4.5   Chapter summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       51
+Chapter 5 Case Study Part II: Case Background and Data Curation . . . . . . .              52
+   5.1   Case background . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     53
+   5.2   Why study this case? . . . . . . . . . . . . . . . . . . . . . . . . . . . .      54
+   5.3   Dataset curation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    54
+   5.4   Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   56
+   5.5   Chapter summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       63
+
+
+
+
+                                           4
+Chapter 6 Case Study Part III: Defeasible Reasoning based on Metadata and
+            Section Headings . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     64
+   6.1    Outline of the approach . . . . . . . . . . . . . . . . . . . . . . . . . . .      64
+   6.2    Defeasible reasoning schema and the placement of defeaters . . . . . . .           64
+   6.3    Computational pipelines . . . . . . . . . . . . . . . . . . . . . . . . . . .      66
+   6.4    Code availability . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    74
+   6.5    Chapter summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .        74
+Chapter 7 Case Study Part III: Adding Citation Contexts . . . . . . . . . . . . .            75
+   7.1    What is a citation context? . . . . . . . . . . . . . . . . . . . . . . . . .      75
+   7.2    Approach I: keyword dictionary . . . . . . . . . . . . . . . . . . . . . . .       75
+   7.3    Approach II: leveraging LLM reasoning . . . . . . . . . . . . . . . . . .          75
+   7.4    Provide justifications with a logic artifact . . . . . . . . . . . . . . . . .     75
+   7.5    Chapter summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .        75
+Chapter 8 Conclusions* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       76
+   8.1    Commentary on conceptual inquiry in the age of AI . . . . . . . . . . .            76
+   8.2    Future work . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    76
+References . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   77
+
+
+
+
+                                             5
+                                  Chapter 1   Introduction
+
+1.1 Background and motivations
+
+Consider the following cases:
+
+  1. An article that provided key evidence for a leading theory of Alzheimer’s disease
+     was retracted 18 years after publication, following the discovery of excessive image
+     manipulation within it (Lesné et al., 2006). By then this article had already played
+     a significant role in shaping subsequent research directions, which failed to produce
+     any effective treatment for the disease (Piller, 2025).
+
+  2. Two medical professionals wrote a five-sentence letter to the New England Journal
+     of Medicine to report that only four patients out of 11,882 patients received
+     “narcotic preparation” developed addiction (Porter & Jick, 1980). This letter was
+     later widely (mis)cited to support the claim that addictions among patients who
+     underwent long-term opioids treatment are rare (Leung et al., 2017), despite the
+     fact that the letter does not ascertain the claim and is not a proper medical
+     evidence. This five-sentence letter remains available on the New England Journal of
+     Medicine website, accompanied by an Editor’s Note acknowledging its unfortunate
+     role in the opioid crisis.
+
+  3. A lab has been using a cell line that the researchers believed to be intestinal cells.
+     Yet unbeknownst to them, the cell line have been replaced by HeLa cell, an
+     aggressive cervical cancer cell. Under this mistaken assumption, the researchers
+     published approximately 40 papers and also distributed the misidentified cell line to
+     other laboratories (Capes-Davis et al., 2010).
+
+  4. A group of organic chemists wrote a protocol to teach their fellow organic chemists
+     a useful technique: using sophisticated computational chemistry methods to assign
+     chemical structures to newly discovered or synthesized organic
+
+                                              6
+        compounds (Willoughby et al., 2014). The protocol was well written and well
+        received. Yet the authors were not defensive enough in coding one of their scripts,
+        whose flaw was discovered by another group of organic chemists 5 years after the
+        protocol’s publication (Neupane et al., 2019). The validity of the more than 100
+        studies citing the protocol was questioned (Bender, 2019).
+
+  5. A retired engineer constructed a facial-image dataset to develop a machine-learning
+        tool for screening children for autism. He collected images from autism-related
+        websites and Facebook pages without verifying the diagnostic status of the children
+        included. Neither did he obtained consent from their guardians. The dataset was
+        subsequently used to train models in many studies. Five publications had been
+        retracted for both ethical and reliability concerns (Alkhawaldeh et al., 2025; Ding
+        et al., 2025; Mahmood et al., 2025; Talaat et al., 2024; Vasant Bidwe et al., 2024),
+        with more slated for investigation and retraction (McMurray, 2025).
+
+   My colleagues and I coined the term “unreliability propagation” (UP) for those
+cases (Zheng, Fu, Sarol, et al., 2024). Unreliability propagation arises from epistemic
+reliance: an epistemic agent delegates a crucial part of their intellectual work to other
+agents, which comes with a price if their trust was misplaced. In Cases 1 and 2, patients
+and the public entrusted scientists and medical professionals to develop safe and effective
+treatments. In Cases 3, 4, and 5, researchers relied on research resources produced by
+others as inputs to their own experiments. When an unreliable participant—whether
+human or non-human—occupies an influential position in systems of knowledge
+production, its unreliability can propagate outward, with far-reaching consequences for
+scientific research and society.
+   Responsibility for the propagated unreliability does not rest solely with the source. In
+Cases 1 and 2, participants in the knowledge production and dissemination system
+accepted and acted on the claims despite their weak evidential foundations.1 . In Case 3,
+   1
+       In Case 1, the results were known to fail to reproduce outside the author’s laboratory (Piller, 2025). In
+
+
+                                                        7
+had researchers been regularly verifying the identity of their cell lines, the propagation
+would have been halted earlier. In contrast, in Case 4, the group of organic chemists
+reported the code glitch in their paper, thus prevented further propagation of the
+protocol’s unreliability.
+    As information professionals, we bear a responsibility to protect the integrity of
+information ecosystems from unreliability propagation. This responsibility motivates the
+dissertation. The dissertation focuses on one critical issue: constructing proper
+justifications for scrutinizing or sanctioning an entity that depends on another entity
+known to be unreliable, whether it is a scientific publication, dataset, piece of software, or
+other intellectual resource. This focus emerged in part from observing disparities in how
+such dependent entities have been treated. In Case 5, five publications were retracted on
+the grounds of both their reliance on the unreliable dataset and ethical concerns, and
+every retraction note stated that the authors disagreed with the retractions. In contrast,
+many of the dependent entities implicated in Cases 1–4 remained in the body of scientific
+literature without comparable sanctions. These disparities raise the question of whether
+the different actions taken in these cases are justified and on what grounds.
+    The two research projects in this dissertation tackle the problem of justification from
+different angles. The first is based on an empirical case of a widely used computational
+chemistry protocol containing a code glitch. It investigates how to computationally assess
+dependent publications according to their risk of propagating the protocol’s unreliability
+and most importantly, generate explanations (used as justifications) for these risk
+assessments. The second seeks to identify the conditions under which unreliability has
+propagated from an entity 𝑋 to another entity 𝑌 , irrespective of their types. By
+specifying the conditions under which 𝑌 is itself unreliable because of its dependence on
+𝑋, the analysis provides theoretical grounds for determining when sanction is justified.
+
+
+
+
+Case 2, the letter was not a proper piece of medical evidence by itself.
+
+
+                                                      8
+1.2 Research questions and approaches
+
+1.2.1 RQ1: What are the individually necessary and jointly sufficient
+        conditions for unreliability to propagate from entity 𝑥 to entity 𝑦?
+
+We undertake a more rigorous theoretical examination of unreliability propagation. We
+used the philosophical method of analysis (Beaney & Raysmith, 2024), specifically
+analysis-by-decomposition and analysis-by-transformation (Beaney & Raysmith, 2024).
+The former is used to guide the generation of conditions for unreliability propagation. We
+then drew on theories of conditional logic to give a more rigorous interpretation of the
+conditions initially formulated in natural language. More details about this methodology
+will be covered in Chapter 3. By establishing when unreliability has propagated from 𝑋
+to 𝑌 , this analysis provides the justification for sanctioning 𝑌 as unreliable.
+
+
+1.2.2 RQ2: Given the insight generated from RQ1, how would we design a
+        method to triage publications citing an unreliable source according to
+        their risk of propagating unreliability and provide justifications?
+
+We adopted an ‘expert-in-the-loop” approach, with the author serving as one of the
+domain experts and as the designer of the computational methods. The process began
+with annotation: we annotated 294 publications citing the computational chemistry
+protocol from Case 4 (Willoughby et al., 2014) as either ‘at risk” or “not at risk” of
+propagating the protocol’s unreliability. Through the annotation process, we developed a
+conceptual model of propagation-risk assessment as a process of defeasible
+reasoning (Pollock, 1987). Based on this model, we designed computational methods to
+assess propagation risk and provide justifications for why particular dependent
+publications warrant further scrutiny. We evaluated these methods against the
+annotations.
+
+
+
+
+                                              9
+1.3 The organization of the remaining chapters
+
+Chapter 2 reviews related work and identifies three issues that collectively point to the
+need for an investigation on justifications. First, determining whether a dependent entity
+is unreliable is often complex. Second, there is a lack of clear sense what brings an entity
+over the threshold for scrutiny or sanction. Lastly, limited attention has been given to
+justifications that can be communicated to affected authors and the public, either in
+computer-generated assessments or in actual decision making. Chapter 3 provides the
+methodological background for the dissertation: the philosophical method of analysis and
+theories of conditional logic. Chapters 4 presents work on RQ1, while Chapters 5, 6,
+and 7 presents work on RQ2. Finally, Chapter 8 concludes the dissertation by
+summarizing the findings, discussing limitations, and outlining directions for future work.
+
+
+1.4 A summary of contributions*
+
+finish later in the end
+
+
+
+
+                                            10
+                              Chapter 2      Related Work
+
+2.1 Cases that inspired the term “unreliability propagation”
+
+Currently, we use the term “unreliability propagation” as an umbrella term for a group of
+related cases. Previous work has used terms such as error propagation (Thomsen &
+Resnik, 1995) and error cascade (Bortolus, 2008). The limitation of this error-centered
+terminology is that, in many cases, the source is unreliable rather than erroneous, as the
+cases reviewed below will show. We now turn to these cases.
+   One of the most prominent and extensively studied cases is the continued citation of
+retracted publications. Negative citations to retracted publications can help correct the
+scientific record, but positive or affirmative citations dominate quantitatively (Budd
+et al., 2016; Hsiao & Schneider, 2021; Pfeifer & Snodgrass, 1990). Positive citations may
+remain appropriate when they refer to content unaffected by the grounds for retraction.
+However, given current practices for communicating and managing retractions,
+determining which content remains unaffected can be difficult (Barbour et al., 2009;
+Fanelli et al., 2018). Positive citations that rely on invalidated content may propagate
+unreliability. In one taxonomy regarding citations to retracted publications, Budd et al.
+(2016) distinguished “tacit positive citations” from “substantive positive citations”
+among citations to retracted papers. Tacit citations mention papers as part of a
+literature review, whereas substantive citations refer to papers “for employment as
+methodology, affirmation of results, or other usage that signals a genuine usage of the
+retracted paper.” This taxonomy reflects certain intuitions but falls short in logical
+clarity. Most obviously, it excludes the possibility that citing the retracted paper in the
+literature review constitutes “genuine use.” Second, it singles out employment as
+methodology and affirmation of results as types of genuine use of the retracted paper
+without clarifying what “genuine use” is. Our earlier work offers a more precise account
+of “genuine use” through argumentation-based curation models (Fu & Schneider, 2025).
+
+
+
+                                             11
+Under this account, we could say that retracted research is genuinely used when it
+supports key argumentative components. Based on the particular ontology we chose to
+use, the micro-publication model (Clark et al., 2014), citations that support methods,
+materials, or key steps in inference are more consequential.
+    Another prominent and well-studied case is misidentified cell lines (American Type
+Culture Collection Standards Development Organization Workgroup ASN-0002, 2010).
+Misidentified cell lines are cell lines believed to have one identity (e.g., intestinal cells)
+but that in fact have a different identity (e.g., cervical cancer cells). A misidentified cell
+line is an unreliable model of the biological system it is supposed to represent. When
+researchers examines a different phenomenon from the one they intend to study due to
+the unreliability of the cell line, it creates a material error (Allchin, 2001) that
+fundamentally severs the relationship between resulting data and phenomenon. Research
+conducted on misidentified cell lines could be regarded as wasted (Korch & Capes-Davis,
+2021). Yet, for greater precision, one must establish that the misidentified cell lines were
+actually used under their mistaken identities (Vaughan et al., 2017). Even when they
+were, some argue that the research can still retain scientific merit as long as the cell line’s
+identity was not “targeted” in the research (Gorphe, 2019). Some have also argued that
+studies based on misidentified cell lines can nevertheless be repurposed. Rae et al. (2007)
+established that a cell line MDA-MB-435 is not a breast cancer cell line but a melanoma
+cell line. Yet rather than treating everything done with MDA-MB-435 as wasted, they
+explicitly argued that the cell line remained valuable for studying cancer metastasis and
+that the large body of prior MDA-MB-435 research could become “a valuable new
+resource for the melanoma research community.”
+    Whether upstream unreliability propagates may sometimes be difficult to predict or
+explain. Marcarino et al. (2020) provided a simulation study that illustrates this point.
+The study sought to quantify the severity of the WJH code glitch (Bender, 2019)2 . The
+    2
+    Notably, the authors used a different method to identify the most likely structure, a Bayesian statistical
+framework called DP4+ (Grimblat et al., 2015), whereas Willoughby et al. used linear regression. For this
+
+
+                                                     12
+authors selected a diverse set of 66 molecules, wrote a script to simulate the random
+mismatching of files caused by the code glitch, and repeated this perturbation one million
+times for each candidate. Under random file pairing, about 60% of the molecules were
+still correctly identified. The authors made explicit efforts to correlate sensitivity to the
+code glitch with structural architecture, conformational flexibility, NMR data dispersion,
+and energy data dispersion, but found no clear relationships. They concluded that the
+same code glitch could have very different effects in different cases, and these differences
+could not be explained by any single identifiable feature of the molecule.
+    Bortolus (2008) provided a detailed discussion of the error cascade of bad taxonomy
+in the biological sciences. Here, bad taxonomy refers to the identification, classification,
+and naming of organisms without following the established procedures and rules of
+professional taxonomists. Ecologists may pick up bad taxonomy when they rely on gray
+literature, previous ecological papers, or personal observations. Bortolus’ analysis of the
+consequences of bad taxonomy is valuable to our study for its well-defined conceptual
+structure and rich empirical examples. First, Bortolus identified the organizational
+structure that allows taxonomic errors to propagate: environmental management
+depends on ecological studies, while ecological studies depend on taxonomy. This
+structure allows a taxonomic error to be assimilated into ecological studies and
+subsequently into environmental management. Second, Bortolus showed that the
+consequences of such propagation vary. A taxonomic error can remain relatively harmless
+in some cases but compromises the environment in others. Bortolus grounds this
+progression of severity in the core objectives of the biological sciences: understanding
+patterns and processes in nature and, ultimately, manipulating natural resources in
+beneficial and optimal ways. Several concrete examples illustrate the progression. In one
+case, the taxonomic error was a minutae in a paper with—according to the author—little
+likelihood of influencing anything else. In another case, a taxonomic error lead to failures
+
+reason, findings from Marcarino et al. do not speak directly to the severity of the code glitch if the WJH
+protocol were followed.
+
+
+                                                   13
+in discovering the decline of a native mussel species. In the worse case, a taxonomic error
+resulted in irrevocable environmental alterations: a cordgrass mistakenly identified as a
+native species was repeatedly transplanted from one place to another and displaced
+native organisms. The emphasis on manipulation helps unify several earlier intuitions
+about UP, including the notion of employment in methodology in Budd et al. (2016) and
+the idea that misidentified cell lines must be targeted for unreliability to propagate in
+Gorphe (2019).
+   A prominent class of unreliability propagation that has emerged in recent years were
+unreliable datasets used to train machine learning models. We observe two types of
+situations, depending on whether propagation can be established. Poore et al. (2020)
+used a computational pipeline to transform existing cancer-related sequencing data into a
+new dataset, which was later reused by several studies (Gihawi et al., 2023). Subsequent
+reanalysis identified serious problems in the pipeline that generated this new
+dataset (Gihawi et al., 2023), and the Poore et al. article was eventually retracted (Poore
+et al., 2024). One downstream study by Hermida et al. (2022) had used the processed
+data from Poore et al. as input for its own models. After the Poore retraction, the
+authors reanalyzed their study. They could not reproduce their original findings and
+voluntarily retracted the article (Hermida et al., 2025). All authors agreed to this
+retraction. In this case, UP can be established more directly because of the possibly to
+run a analysis with dataset replacement.
+   Such direct comparison and verification is not always possible. An autism
+facial-recognition dataset (Piosenka, n.d.-a, n.d.-b) was constructed using images
+downloaded from autism-related websites and Facebook pages. Class labels were assigned
+based on inferred rather than verified diagnoses, and the images were used without
+consent from the children’s guardians. By the time these problems were recognized, the
+dataset had been used in more than 90 published studies (McMurray, 2025). Publishers
+began investigations and retractions based on concerns about both data reliability and
+
+
+                                             14
+research ethics, but most authors disagreed with the retractions (Alkhawaldeh et al.,
+2025; Ding et al., 2025; Mahmood et al., 2025; Talaat et al., 2024; Vasant Bidwe et al.,
+2024). Similar concerns surround two Kaggle datasets used for stroke and diabetes
+prediction (Fedesoriano, n.d.; Mustafa, n.d.). These datasets lack clear provenance and
+certain variables display abnormal patterns. Gibson et al. (2026) identified 125 studies
+using them, and several of which were later retracted. Similar to the autism
+facial-recognition case, the editors stated their lost of confidence in the reliability of the
+findings in the retraction notice (interpreted as the reason for reaction) while the authors
+either do not respond or disagree with the decisions (El-Geneedy et al., 2026; Hassan
+et al., 2026; J M & P, 2026; Karpagam et al., 2026; Mochurad et al., 2026; Saleem et al.,
+2026; Zhou et al., 2026). Admittedly, in these cases, UP cannot be verified in the same
+way as in the Poore–Hermida case because we will have no way to “correct” the datasets,
+which could potentially explain the reaction from the authors. Yet, on the other hand,
+publishers’ decision could be justified as the lack of sufficient epistemic standing for the
+underlying data can itself warrant retractions.
+
+
+2.2 Policies and measures to address unreliability propagation
+
+Policies and measures applied to retracted scientific publications                Major
+citation management software packages now routinely flag retracted publications (Price,
+2021). Many scholarly publication sites display a Crossmark button next to a publication
+to allow readers to check retraction status (Meyer, 2011). Those measures helps prevent
+unreliability propagation proactively. The Cochrane Collaboration, an organization
+produces and stewards trusted systematic reviews for healthcare, mandates the
+withdrawal a review if its conclusions “are unreliable as a direct result of the retraction of
+an included study” (Cochrane Collaboration, 2026). Committee on Publication Ethics or
+COPE’s Guidelines on Retracted Articles dictates that “[a]rticles that relied on
+subsequently retracted articles in reaching their own conclusions, such as systematic
+
+
+                                              15
+reviews or meta-analyses, may themselves need to be corrected or retracted” (Barbour
+et al., 2009).
+
+
+Policies and measures applied to misidentified cell lines After years of effort,
+currently, there is a relatively mature infrastructure to prevent unreliability propagation
+of misidentified cell lines. This infrastructure encompasses misidentification warning,
+authentication standards, pre-use requirements, pre-publication requirements, and
+post-publication responses (Weiskirchen, 2026). Table 2.1 provides examples of those
+policies and measures. Notably, to our knowledge, there is no specific policy that governs
+how journals should handle published articles found to have used misidentified cell lines.
+Weiskirchen (2025) documented four cases in which concerns were reported to journals
+about publications using misidentified cell lines, with varied outcomes. One journal
+responded promptly by sending the commentary for peer review and subsequently
+publishing it. Another journal took a similar approach and also invited the authors of
+the original paper to respond. A third journal declined to publish the commentary but
+launched a private investigation. A fourth journal rejected the commentary and did not
+respond to subsequent follow-up attempts.
+
+
+Policies to AI systems depending on unreliable datasets While we are not
+aware of any policies targeting publications that depend on unreliable data in scholarly
+communication, we were able to locate some specifications for analogous concerns in the
+broader AI governance policies. Article 10 of the EU AI Act establishes requirements
+concerning the quality and governance of training, validation, and testing
+datasets (Artificial Intelligence Act, 2024). Article 20 then provides a general mechanism
+for addressing problems discovered after deployment: providers of high-risk AI systems
+are required to take corrective actions when they have reason to consider that a system
+does not conform with the regulation. Such actions include bringing the system into
+conformity, withdrawal, disablement, or recall (Artificial Intelligence Act, 2024). The
+
+                                            16
+    Table 2.1: Categories of policies and measures concerning misidentified cell lines
+ Category               Purpose                                     Example
+
+ Misidentification      Establish and communicate that a cell       International Cell Line
+ warning                line is misidentified                       Authentication Committee
+                                                                    (ICLAC) register of misidentified
+                                                                    cell lines3
+
+ Authentication         Specify how a cell line’s identity should   ANSI/ATCC
+ standards              be established                              ASN-0002-2022 (American Type
+                                                                    Culture Collection, 2022)
+
+ Pre-use requirements   Require researchers to authenticate         US National Institutes of Health
+                        resources before or during research         NOT-OD-15-103 (of Health,
+                                                                    n.d.)
+
+ Pre-publication        Determine whether research using the        International Journal of Cancer
+ requirements           resource can be published                   policy (of Cancer, n.d.)
+
+ Post-publication       Determine what happens to existing          No policy exists to our
+ responses              publications after its usage of a           knowledge. Journals respond on
+                        misidentified cell line is discovered       case-by-case bases (Weiskirchen,
+                                                                    2025)
+
+
+National Institute of Standards and Technology (NIST) AI Risk Management Framework
+(AI RMF) Playbook (National Institute of Standards and Technology, 2023) states that
+AI systems have inherent dependence on training data. Although the AI RMF Playbook
+does not specifically address the post-development discovery of problems in training data,
+MANAGE 4.3 offers some relevant guidance on corrective actions: it recommends
+communicating identified errors and incidents to relevant AI actors, including affected
+communities, and asks organizations to document “[w]hat corrective actions has the
+entity taken to enhance the quality, accuracy, reliability, and representativeness of the
+data?”
+
+
+Computational approaches to trace unreliability propagation Computational
+approaches offer scalability. For problems such as misidentified cell lines and positive
+citations to retracted publications, computational approaches to scan large amount of
+documents are much needed. A major project in this area is the “Problematic Paper
+Screener” (PPS), an infrastructure that identifies and flags publications based on features
+
+                                                17
+of the publications themselves (also called fingerprints4 ), their citations, or the research
+resources they use. Three PPS detectors are particularly relevant to unreliability
+propagation. The “Feet of Clay” detector identifies papers that “may be unreliable as
+they cite at least one annulled paper (i.e., retracted, removed, or withdrawn).” There is
+no publicly available codebase for the “Feet of Clay” detector, so we could only infer the
+structure of its pipeline from three publications (Cabanac, 2024; Cabanac et al., 2023;
+Graña Possamai et al., 2025) and the PPS website. First, “Feet of Clay” depends on
+another detector, the “Annulled” detector, which aggregates information from publisher
+websites, Crossref, and PubMed to create a repository of papers that have been
+retracted, withdrawn, or removed (collectively called “annulled”) (Cabanac, 2024).
+Second, “Feet of Clay” uses Dimensions (Hook et al., 2018) as its citation database and
+traverses the citation graph to identify publications that cite annulled papers. Third,
+there is no evidence that “Feet of Clay” examines how a flagged publication cites an
+annulled paper, creating the potential for misfiring on, for example, papers citing
+annulled papers negatively. A number of publications with unusually high proportions of
+annulled references were subsequently investigated (Van Noorden & Naddaf, 2024).
+Among these egregious cases, annulled references constituted between 21% and 65% of
+the bibliography. Several of these publications were subsequently retracted (Van Noorden
+& Naddaf, 2024). In one case the journal conducted an investigation and ultimately
+declined to retract the paper, stating that “the conclusions in this article are still valid
+and correct despite the retracted literature” (“Notification”, 2025).
+   The “Seek&Blastn” detector identifies papers that report nucleotide-sequence
+reagents whose sequences are inconsistent with their reported gene-targeting properties.
+The detector is based on a software tool of the same name (Labbé et al., 2019). The
+Seek” component extracts nucleotide sequences from publications and their reported
+gene-targeting properties, while the “Blastn” component searches nucleotide sequence
+
+   4
+       https://dbrech.irit.fr/pls/apex/f?p=9999:5::::::
+
+
+                                                          18
+databases to verify whether the sequences match their reported gene-targeting properties.
+Early work that inspired the tool found that a number of papers reported nucleotide
+sequences did not match their claimed gene-targeting properties. Coupled with suspicious
+similarity among those papers, it raised concerns that the papers might have been
+manufactured by paper mills rather than reporting genuine experiments (Byrne & Labbé,
+2017). Strictly speaking, therefore, these sequence mismatches are fingerprints of possible
+scientific fraud rather than instances of propagated unreliability from research resources.
+   The Problematic Cell Lines” detector is still under development. The results table
+currently include two curated datasets—1693 papers in total—concerning two subtly
+different problems with cell lines: a sample of COVID-19 articles matched against the
+ICLAC Register of Misidentified Cell Lines, and articles identified by Oste et al. (2024)
+“featuring” seven non-verifiable (NV) cell lines. The first dataset, although described in
+little detail, appears to identify COVID-19 research that may have relied on known
+misidentified cell lines. The second dataset was manually curated and concerns cell lines
+whose identities could not be verified (thus not misidentified). The computational
+pipeline underlying the Problematic Cell Lines” detector is unknown. A related study
+provides some indication of a possible method: Babic et al. (2019) used SciScore, a
+named entity recognition tool tailored for scientific resources, to extract cell-line names
+from papers and then matched those names against the ICLAC and Cellosaurus lists of
+problematic cell lines.
+   Notably, PPS only raises the need for scrutiny of papers. The website encourages
+users to report true positives on PubPeer and to report both true and false positives to
+the PPS developers. The tabulated datasets also include a column naming the
+assessor—though not clear what the role meant—and a column linking to the associated
+PubPeer records. These features create a feedback loop between computational screening
+and human verification. However, PPS does not appear to provide a mechanism for
+incorporating responses from the authors of flagged papers.
+
+
+                                             19
+   Another systematic line of computational research comes from Usman et al. (Usman
+& Balke, 2023, 2024; Usman et al., 2025, 2026), although this work has yet to be
+deployed in real-world scholarly communication systems. In a series of studies, Usman et
+al. investigated computational methods for identifying papers that may warrant
+reevaluation because of their relationship to retracted research. In the first study (Usman
+& Balke, 2023), they used citation intention expressed in citation contexts to predict
+whether a paper citing a retracted paper 𝑋 depends on it (and therefore warrants
+reevaluation). In the second study (Usman & Balke, 2024), they investigated retraction
+cascades—cases in which a paper citing a retracted paper is itself subsequently
+retracted—and used similarity to known cascade cases, citation dependency, and
+citation-, network-, and author-related features to identify potential cases of retraction
+cascades. In the third study (Usman et al., 2025), they investigated “implicit”
+dependency by examining similarities in experimental protocols between retracted papers
+and their citing papers. Such dependencies were implicit as they were not explicitly
+expressed through citation intentions. In the most recent study (Usman et al., 2026),
+they reversed the direction of assessment and identified papers that may warrant
+reevaluation based on concerning citations—citations from later papers that question the
+validity of their data, methodology, or conclusions. While explanations for individual
+classifications could potentially be extracted from the predictive models, providing
+explicit justifications was not a focus of these studies. The closest example appears in
+one study (Usman & Balke, 2024), where a case analysis identified four papers for
+reevaluation and summarized the reasons as “high similarity, explicit dependency in
+citation text, similar applied protocol, [and] possible flow of error.”
+
+
+
+
+                                              20
+2.3 The idea of reliability
+
+2.3.1 Reliability grounded in Reliance
+
+At the most fundamental level, reliability concerns whether something can be relied upon
+by someone and is a concept grounded in reliance. A subject 𝑆 relies on 𝑋 to 𝜑 when 𝑆
+is prepared to act on the supposition that 𝑋 will 𝜑 (Goldberg, 2020; Holton, 1994). 𝑋
+can be a person, artifact, or natural process and 𝜑 can be an action, behavior, or process.
+Reliability is thus the property of 𝑋 that makes 𝑋 suitable for the reliance that 𝑆 places
+on it, while unreliability is the lack of that property. For example, misidentified cell lines
+were unreliable because they lacked the biological identity required to serve as suitable
+experimental models of the intended biological systems. In systematic reviews, retracted
+studies are unreliable because their findings lack the epistemic standing that would make
+them suitable for use as evidence.
+   One notable point about this fundamental sense of reliance is its close relation to the
+concept of trust. Philosophers often treat trust as a form of reliance with additional
+conditions, which means that trustworthiness cannot simply replace reliability for our
+purposes. Those additional conditions include participant stance (Holton, 1994), good
+will from the trustee (Baier, 1986), affective attitude (Jones, 1996), perceived
+commitment (Hawley, 2014). One important difference is that when trust is violated, a
+sense of betrayal or resentment on the side of the trustee is appropriate, whereas the
+failure of mere reliance does not warrant such reactions (Baier, 1986; Hawley, 2014). A
+biomedical researcher who discovers that a cell line has been misidentified may regard the
+cell line as unreliable, but the researcher is unlikely to feel betrayed by the cell line.
+   An important distinction that has become salient in recent discussions of trust in AI
+and ML is that between trust and appropriate reliance (Benda et al., 2022; Ryan, 2020).
+Some philosophers argue that applying the concept of trust directly to AI is inappropriate
+because trust involves interpersonal features (Ryan, 2020). On these accounts, what is at
+
+
+
+                                              21
+issue instead is whether reliance on such systems is appropriate (Benda et al., 2022; Lee
+& See, 2004). For example, a responsible physician may rely on an AI diagnostic system
+when there are adequate grounds for regarding the system as reliable for its intended use,
+but this does not mean that the physician trusts the system.
+
+
+2.3.2 Reliability as in the Reliabilist epistemology
+
+Reliabilist epistemology develops a specialized epistemic application of this general
+notion of reliability. Instead of:
+
+
+                                     𝑆 relies on 𝑋 to 𝜑.
+
+   We have:
+
+
+           𝑆 relies on a belief formation process 𝑋 to produce true beliefs (𝜑).
+
+   This leads to an account of reliability in terms of truth-conduciveness: a reliable
+process tends to yield true rather than false beliefs (Goldman, 1979). However, there are
+different ways to understand truth-conduciveness. On a frequency account, reliability
+concerns the proportion of true beliefs produced by actual instances of the process; on a
+propensity account, reliability concerns the proportion of true beliefs that would be
+produced across a suitable range of possible instances (Alston, 1995; Goldman, 1979).
+The propensity account has been favored, in part, because it accommodates problems
+such as single-case reliability (Alston, 1995; Feldman, 1985). However, the frequency
+account provides the actual determination of propensity: observing the frequency of true
+outcomes is the most directly way to assess reliability (Alston, 1995). Applied to
+computational circumstances, Durán (2026) argues that reliability of algorithms is
+determined by reliability indicators generated from formal methods, algorithmic metrics,
+expert competencies, research cultures, and other scientific practices.
+
+
+                                             22
+2.3.3 The counterfactual account of reliability
+
+A different account of reliability was proposed by Nozick using counterfactual
+conditionals. Goldman dcharacterizes Nozick’s truth-tracking theory as a “counterfactual
+reliability theory of knowledge” (Goldman, 2012). Goldman’s process reliabilism captures
+the intuition that a belief-forming process is reliable if it tends to produce true rather
+than false beliefs (Goldman, 1979). This leaves open how truth-conduciveness should be
+understood: in terms of the observed frequency of true beliefs, or in terms of what the
+process would produce across actual and relevant possible circumstances.
+    A related modal conception appears in Nozick’s truth-tracking account of
+knowledge (Nozick, 1981). Nozick asks how a process, or method, tracks the truth and
+proposes two counterfactual conditions, commonly called sensitivity and adherence. The
+sensitivity condition is:
+
+
+                                          ¬𝑃 2→ ¬𝐵𝑀 (𝑃 )
+
+5
+
+
+    which reads: If 𝑃 were false, 𝑆 would not believe 𝑃 via 𝑀 .
+    The adherence condition is:
+
+
+                                            𝑃 2→ 𝐵𝑀 (𝑃 )
+
+    which reads: If 𝑃 were true, 𝑆 would believe 𝑃 via 𝑀 .
+    A related development is the safety condition, especially associated with Sosa (Sosa,
+1999):
+
+
+                                            𝐵𝑀 (𝑃 ) 2→ 𝑃
+
+
+   5
+     the symbol 2→ is a counterfactual connective. Readers can refer to chapter 3 to a brief introduction
+about it.
+
+
+                                                   23
+   which reads: If 𝑆 were to believe 𝑃 via 𝑀 , 𝑃 would be true. This condition has the
+form of the contrapositive of the sensitivity condition. However, because counterfactual
+conditionals do not generally contrapose, the two conditions are not equivalent.
+   These counterfactual conditions, however, still leave open the problem of how to
+evaluate whether a method 𝑀 actually satisfies them. Roush (Roush, 2005) developed a
+probabilistic version of truth tracking by replacing the subjunctive conditionals, or
+counterfactual conditionals in our terminology, with conditional probabilities, thereby
+making the sensitivity and adherence conditions more amenable to empirical evaluation.
+Specifically, she translated the sensitivity condition into:
+
+
+                                    𝑃 (¬𝐵(𝑝) ∣ ¬𝑝) is high.
+
+   And the adherence condition into:
+
+
+                        𝑃 (𝐵(𝑝) ∣ 𝑝) is high, and 𝑃 (𝐵(−𝑝) ∣ 𝑝) is low.
+
+   Here, lowercase 𝑝 denotes the proposition, while uppercase 𝑃 denotes probability.
+
+
+2.3.4 Reliability as consistency of test/method outputs
+
+In the scientific literature, reliability has a specialized meaning: the ability of a test or
+method to produce consistent results across repeated applications, irrespective of
+whether those results are true (Fitzner, 2007; Weitz et al., 2017). This is a relatively
+narrow sense of reliability. Although we do not use the term of reliability in this sense, it
+is important to acknowledge its existence.
+
+
+2.4 Context dependency of reliability*
+
+TODO
+
+
+
+
+                                              24
+2.5 Text examples reflecting a sense of unreliability propagation
+
+From Cochrane Database of Systematic Reviews: editorial policies (Cochrane
+Collaboration, 2026):
+
+     Reasons for withdrawing a Cochrane review or protocol: ... The conclusions
+     of a Cochrane review are unreliable as a direct result of the retraction of an
+     included study. This could occur if a study, or studies, included in a Cochrane
+     review are retracted from publication, and an analysis shows that the removal
+     of the retracted studies from the analyses in the Cochrane review has a major
+     effect on the review. ...
+
+   From Retraction Note: A comprehensive explainable AI approach for enhancing
+transparency and interpretability in stroke prediction (El-Geneedy et al., 2026):
+
+     The Authors have used a publicly available dataset (The Stroke Prediction
+     Dataset). Concerns have been raised regarding the provenance and validity of
+     this dataset1 . The Authors have been unable to provide any further
+     information regarding the provenance or accuracy of the data included in this
+     dataset. As this dataset was used for the training and validation of the
+     proposed model in this Article, the Editors no longer have confidence in the
+     reliability of the results and conclusions of this Article.
+
+   From RETRACTED ARTICLE: Real-time facial emotion recognition model based on
+kernel autoencoder and convolutional neural network for autism children (Talaat et al.,
+2024):
+
+     The Editor has retracted and removed this publication. Concerns were raised
+     regarding the use of images of minors from a non-curated dataset. The
+     dataset is reported to contain images of children with ASD. However, the
+     images appear to have been collected from the internet without any
+
+                                             25
+      documented clinical history or confirmation of an actual ASD diagnosis.
+      Additionally, there is no documented ethical oversight, or consent of the
+      children included in the dataset or their parents and legal guardians.
+
+      In light of these ethical concerns and the reliance on unverifiable data, the
+      Editor and Publisher no longer have confidence in the reliability of this article.
+
+
+2.6 Models of justification
+
+In this dissertation, a reason refers to a consideration that bears on whether a conclusion
+should be accepted. We use the term in its informal sense, without committing to
+particular formal representations. A justification thus refers to one or more reasons in
+favor of a conclusion that are recognized as justified under certain norms. We describe
+what scholars think justification is in their models without engaging in deeper
+philosophical discussions about justification, for example, the debate over what makes a
+belief justified.
+   What is the simplest justification? In its simplest form, we could say that a reason
+supports a conclusion. Toulmin provided more structural clarity by using a warrant to
+license the move from reason to conclusion and using backing to support the warrant
+itself (Toulmin, 2003).
+   Such support needs not be conclusive. In defeasible reasoning, conclusions drawn
+under incomplete information may have to be withdrawn when new information becomes
+available. Pollock proposed the idea of the prima facie reason, a logical reason for
+someone to believe something, yet for which there exist defeaters (Pollock, 1974).
+   He thus developed a theory around defeasible justification (Pollock, 1974, 1987, 2001).
+In his view, a prima facie reason has justificatory forces without having to be conclusive
+or free of defeaters (Pollock, 1974).
+   In artificial intelligence research, defeasibility was studied under the notion of
+non-monotonic reasoning. Several forms of non-monotonic logic were developed to
+
+
+                                             26
+formalize the features of defeasibility. Reiter’s default logic models defeasibility through
+the applicability of default rules: rules whose applicability can be canceled when new
+information emerges (Reiter, 1980). McDermott and Doyle locate defeasibility in the
+assumptions used to license an inference: new information can invalidate those
+assumptions, thereby blocking an inference that was previously
+available (mcdermott_nonmonotonic_1980). McCarthy takes a different approach
+via abnormalities. His approach assumes a case is normal unless the available information
+shows otherwise. When new information establishes an abnormality, the ordinary
+conclusion may no longer follow (McCarthy, 1980).
+   Pollock himself makes defeaters explicit in the model (Pollock, 1987). A prima facie
+reason provides justification to a conclusion that can be defeated by additional
+information. Pollock distinguishes two kinds of defeaters: a rebutting defeater is a reason
+for an opposing conclusion, whereas an undercutting defeater attacks the connection
+between a reason and its conclusion (Pollock, 1987).
+   Varies about defeasibility were further developed within the broader field of formal
+argumentation, which considers interactions between multiple reasons (or argument).
+Dung’s abstract argumentation framework shifts the unit of analysis from reasons and
+inferences to the whole argument, abstracting out its internal structure and focusing
+instead on adversarial relations among arguments (Dung, 1995). Under Dung’s
+framework, justification is a property ascribed by membership: an argument is justified if
+it is a member of the unique extension under the grounded semantics (most stringent) or
+a member of every extension under the preferred semantics (less stringent) (Prakken,
+2005).
+   Later work in structured argumentation brought the internal structure of arguments
+back into view. Combining Pollock’s distinction between rebutting and undercutting
+defeaters and Vreeswijk’s premise attack, Prakken distinguishes attacks on a premise
+(undermining), on conclusion (rebutting), and on the inference (undercutting) (Prakken,
+
+
+                                             27
+2010). Prakken further distinguishes attack from defeat: an attack is a conflict between
+arguments, whereas defeat adds an evaluative judgment about whether that attack
+succeeds. The evaluation is done primarily through a preference order. The resulting
+defeat relation is then evaluated under Dung-style semantics, which will provide the
+justificatory status of the arguments.
+   In contrast to the formal approaches reviewed so far, Walton developed a theory of
+argumentation schemes that offers a more socially- and dialogically-grounded perspective
+on defeasible justification. Walton and his collaborators systematically identified and
+classified recurring patterns of reasoning found in everyday discourse and various
+domains of practice, such as arguments from expert opinion, analogy, consequences, and
+practical reasoning (walton_argumentation_1996;
+walton_argumentation_2008). These argumentation schemes represent familiar
+ways in which people provide reasons for accepting conclusions, even when such reasons
+are not conclusive. In this respect, they closely resemble Pollock’s prima facie inference
+rules (prakken_nature_2010). Walton’s argumentation scheme is related to our
+problem of models of justification in the following ways. An argument following an
+appropriate scheme provides presumptive justification for its conclusion, which can be
+challenged through critical questions associated with the scheme. If a relevant challenge
+cannot be adequately answered, the argument may lose its justificatory force. Whether a
+challenge succeeds depends in part on the burden of proof governing the argumentative
+exchange. Through a more socially and empirical grounded analysis of actual reasoning
+patterns from the real world, Walton thus brings attention to the diverse, socially
+situated ways in which people construct, challenge, and defend justifications.
+
+
+
+
+                                            28
+2.7 From Chain-of-Thought prompting to reasoning models*
+
+2.8 Chapter summary
+
+In this chapter, we reviewed a range of related work. Through this review, we end with
+three issues that warrant an investigation into justifications of unreliability propagation.
+First, determining whether a dependent entity is unreliable is often complex, as we see
+from the cases of citations to retracted articles and papers utilizing misidentified cell
+lines. The challenges partly come from information availability and findability and partly
+from the complexity of knowledge production itself. Second, there is a lack of a clear
+sense of what brings an entity over the threshold for scrutiny or sanction. Very little
+guidance can be found in policies as well. In the reviewed technology development,
+researchers define their own terms, operationalized in their algorithms or models. Lastly,
+limited attention has been given to justifications that can be communicated to affected
+authors and the public, either in computer-generated assessments or in actual decision
+making. This tendency risks making such measures look authoritarian, without
+adequately accounting for the aforementioned complexity of knowledge production.
+   We have mentioned before that the term “unreliability propagation” was coined and
+used as an umbrella term, or metaphor, for a range of cases. Prior researchers have used
+terms such as “error propagation” or “error cascade,” but we cannot adopt the same
+terminology because, in many cases, the entity in question is not erroneous but
+unreliable. Moreover, we identified several textual examples from policy documents and
+retraction notices that convey a very similar notion. Given the close relationship between
+reliance and trust, as we reviewed before, the “unreliability” in unreliability propagation
+is therefore not meaningless.
+   Last but not least, we reviewed models of justification formation, where John
+Pollock’s work on defeasible reasoning plays a central role. In the coming chapter, we will
+see how defeasible reasoning will be used as our model of justification formation, with the
+
+
+
+                                             29
+help of reasoning language models, which we also touched upon in this Chapter.
+
+
+
+
+                                          30
+                         Chapter 3 Methodology Preambles
+
+This chapter covers necessary background information to help readers understand one
+methodology used in this dissertation, the philosophical method of analysis (Beaney &
+Raysmith, 2024). Specifically, we employ analysis-by-decomposition,
+analysis-by-transformation, and counterexample construction and resolution. To help
+reader understand the analysis-by-transformation part, we will also cover different
+theories of conditionals (i.e., the statement “if 𝑃 then 𝑄”), including material
+implication, logical implication, metaphysical implication, and counterfactual
+implications. Further, we will cover a few properties of counterfactual conditionals, which
+will be needed in the analysis as well.
+
+
+3.1 The method of analysis
+
+3.1.1 Analysis-by-decomposition
+
+The analysis-by-decomposition approach, as the name suggests, decomposes a concept
+into its constituents. We ask what must be true for a thing to fall under a concept, and
+then try to identify all conditions explicitly. For example, a bachelor is an adult man
+that is unmarried. So the conditions can be decomposed into:
+
+
+                               𝑋 is a bachelor if and only if:
+
+                               (i) 𝑋 is a man;
+
+                               (ii) 𝑋 is an adult;
+
+                               (ii) 𝑋 is unmarried.
+
+
+   Each condition must be met to make 𝑋 a bachelor. In discussions of conceptual
+analysis it is said that each condition is true if “X is a bachelor” is true and if all the
+conditions are met then “𝑋 is a bachelor” is true, that is, these conditions are
+individually necessary and collectively sufficient of X’s being a bachelor.
+
+                                              31
+   However, it is not always helpful to have the analysandum, the statement to be
+analyzed, written as “𝑋 is {Concept Name} if and only if.” The analysis of the concept
+of Knowledge serves an example. Instead of writing the statement as “𝑃 is knowledge if
+and only if,” the more approachable alternative is “𝑆 knows 𝑃 if and only if,” which
+allows our intuition to participate in the analysis. In epistemology the following is
+referred to as the “standard” analysis of knowledge.
+
+
+                          𝑆 knows 𝑃 if and only if:
+
+                          (i) 𝑃 is true;
+
+                          (ii) 𝑆 believes that 𝑃 ;
+
+                          (iii) 𝑆 is justified in believing that 𝑃 .
+
+
+
+3.1.2 Analysis-by-transformation
+
+An analysis can also be transformative, as an analyst leverages a more revealing
+framework, such as logic or algebra, to aid their analysis. By using logic, we avoide being
+misled by cues from natural language statements. An example is the analysis of the
+negative existential statement as the following one.
+
+
+
+                                  Unicorns do not exist.
+
+
+   To understand what this statement means, we first decompose it into subject and
+predicate, with “unicorns” as the subject and “do not exist” as the predicate. Based on
+this treatment, we transform the statement into a formal logic form:
+
+
+                                   ∀𝑥(𝑈 (𝑥) → ¬𝐸(𝑥)),
+
+
+where
+
+                                             32
+                                  𝑈 (𝑥) = 𝑥 is a unicorn.
+
+                                     𝐸(𝑥) = 𝑥 exists.
+
+   And
+                                   ∀𝑥(𝑈 (𝑥) → ¬𝐸(𝑥))
+
+says that everything that is a unicorn does not exist.
+   However, we encounter a contradiction: We presuppose an object while denying its
+existence, which is logically awkward.
+   As Frege and Russell pointed out, such a statement should be expressed instead as
+the following.
+                                         ¬∃𝑥 𝑈 (𝑥)
+
+   It means that “the concept unicorn has no instance.” We acknowledge the existence
+of the concept unicorn but deny that the concept is instantiated in the world, which
+reveals what we exactly mean by saying “unicorns do not exist.”
+
+
+3.1.3 Counterexample construction and resolution
+
+A counterexample is a case that can demonstrate the falsity or inadequacy of a claim,
+definition, conjecture, or theory. In mathematics, counterexamples are useful because
+they disprove false conjectures efficiently. For example, recently, Claude Fable came up
+with a counterexample that disapproved the famous Jacobian conjecture (Sparkes, 2026).
+   We use the Gettier cases and the subsequent patches to illustrate counterexample
+construction and resolution in conceptual analysis. Gettier cases are counterexamples to
+the JTB theory of knowledge, which is that knowledge is justified true belief. Gettier
+constructed two counterexamples (or cases) that meet the justified true belief criteria,
+but intuitively failed to count as knowledge (Gettier, 1963). We used the first Gettier
+
+
+
+                                            33
+counterexample as illustration. In this counterexample, the main character, Jones
+believes that “the man who will get the job has 10 coins in his pocket.” Jones was
+thinking of Smith, his colleague, who he has good evidence that (1) will get the job and
+(2) has 10 coins in his pocket. However, it turned out Jones was the person who got the
+job and he happened to have 10 coins in his pocket. This belief that “the man who will
+get the job has ten coins in his pocket” is justified true belief but we would not say that
+John knows that “the main who will get the job has ten coins in his pocket,” because he
+was clearly thinking about Smith but not himself.
+   In analysis-by-decomposition (or the classical conceptual analysis), the
+counterexample can be useful in several ways. Most obviously, it points to the deficiency
+of the conditions we proposed, for example, justified true belief is not sufficient for
+knowledge. Second, it can be diagnostic by revealing what the analyst might have
+overlooked. For example, we might say that Jones benefit from some kind of luck: that
+although he was chosen instead of Smith, he happened to have 10 coins in his pocket as
+well. The understanding that luck is at play here inspires additional conditions such as
+Nozick’s counterfactual conditions on belief (Nozick, 1981). The counterfactual
+conditions state that (1) were 𝑝 false, the subject would not believe 𝑝 and (2) were 𝑝
+true, the subject would believe 𝑝 and help to rule out many luckily true Gettier cases.
+
+
+3.2 Four interpretations of the conditional statement “if 𝑃 then 𝑄”
+
+Although ordinary language users readily understand conditionals such as “if it rains, we
+will not have a picnic tomorrow,” logicians have long grappled with how statements in
+the form “if 𝑃 , then 𝑄” should be interpreted. Several theories of conditionals have been
+proposed, and we review four of them below, centering on what conditions should be met
+when the conditional “if 𝑃 then 𝑄” is true. In a conditional statement, 𝑃 is called the
+antecedent and 𝑄 the consequent.
+
+
+
+
+                                             34
+3.2.1 Material implication
+
+Material implication is the truth functional interpretation of the conditional, written as:
+
+
+                                                𝑃 → 𝑄6
+
+
+𝑃 → 𝑄 is true as far as it is not that case that 𝑃 is true and 𝑄 is false.
+
+
+                                           𝑃 → 𝑄 ≡ ¬(𝑃 ∧ ¬𝑄)
+
+   Material conditional can be quite counterintuitive. Yet counterintuitive examples help
+us appreciate what it means for a conditional to be true. The following statement is true
+despite both antecedent and consequent are false and lack any meaningful connection: “If
+the Moon is made of cheese, then 2 + 2 = 5.” As a material conditional, this statement is
+true because its antecedent is false, in which case, it does not matter whether the
+consequent is true or false.
+
+
+3.2.2 Logical implication
+
+Logical implication is also called entailment and is written as:
+
+
+                                                 𝑃 ⊧𝑄
+
+
+Relative to a specified logical system 𝐿, 𝑃 ⊧𝐿 𝑄 is true when every model of 𝐿 in which
+𝑃 is true is also a model in which 𝑄 is true. An example is shown below: In
+propositional logic, 𝑅 and 𝑆 both are true entails that 𝑅 is true.
+
+
+                                               𝑅∧𝑆 ⊧𝑅
+
+
+
+
+   6
+       Another way to write it is 𝑃 ⊂ 𝑄.
+
+
+                                                  35
+The entailment survives when we use different 𝑅𝑠 and 𝑆𝑠.
+
+
+        𝑅1 ∶= Grass is green,                  𝑆1 ∶= Snow is white; 𝑅1 ∧ 𝑆1 ⊧ 𝑅1 .
+
+        𝑅2 ∶= The Moon is made of cheese, 𝑆2 ∶= 2 + 2 = 5;             𝑅2 ∧ 𝑆2 ⊧ 𝑅2 .
+
+
+
+3.2.3 Metaphysical (or broadly logical) implication
+
+There is no standard notation for metaphysical implications, so we adapt modal logic’s
+necessity operator (2) for our purpose. The metaphysical implication is written as:
+
+
+                                       2met (𝑃 ⊃ 𝑄).
+
+
+   2met (𝑃 ⊃ 𝑄) is true when in every possible world where 𝑃 is true, 𝑄 is also true.
+Here the admissible interpretations are restricted to those respecting the meanings of the
+non-logical terms, so the implication considers the content as well as form. An example
+shown below is: “If 𝑥 is blue, 𝑥 is colored.” It can also be read as: “necessarily, in the
+metaphysical sense, if 𝑥 is blue, 𝑥 is colored.” In contrast to logical implication, the
+conditional does not survive if we replace “𝑥 is blue” with “𝑥 is a prime,” and “𝑥 is
+colored” with “𝑥 is odd.”
+
+
+                                2met (Blue(𝑥) ⊃ Colored(𝑥)).
+
+
+
+3.2.4 Counterfactual implication
+
+A counterfactual implication can be written as:
+
+
+                                          𝑃 2→ 𝑄
+
+   𝑃 2→ 𝑄 is read as: “If it had been/were the case that 𝑃 , it would have been/would
+
+
+                                             36
+be the case that 𝑄” (Fenton-Glynn, 2021). 𝑃 2→ 𝑄 is true when among the closest
+relevantly similar possible worlds to the actual world where 𝑃 is true, 𝑄 is also
+true (D. K. Lewis, 1973). For example, the statement of “if we strike the match, it will
+light” is evaluated in a world that is similar and relevant enough to the world where the
+statement was made. It is not a world where oxygen is absent or the match is wet. In
+comparison to the metaphysical implication, a conditional interpreted as a counterfactual
+does not need to be true in every possible world for the conditional itself to be true.
+
+
+Counterfactual dependence and causation            Lewis defined counterfactual
+dependence as a pair of counterfactual conditionals (D. Lewis, 1973). Let 𝑐 and 𝑒 be two
+token events and 𝑂(𝑐) and 𝑂(𝑒) be the propositions that 𝑐 occurs and 𝑒 occurs. 𝑒 is
+counterfactual dependent on 𝑐 if and only if:
+
+
+
+
+                                  (i)   𝑂(𝑐) 2→ 𝑂(𝑒).                                       (1)
+
+                                  (ii) ¬𝑂(𝑐) 2→ ¬𝑂(𝑒).                                      (2)
+
+
+   When the antecedent is true, Lewis’ possible worlds semantics guarantees that the
+truth-value of the counterfactual conditional will be equivalent to the truth-value of the
+consequent (𝑂(𝑒)) (Fenton-Glynn, 2021). Therefore, the truth-value of 𝑖 is true when
+𝑂(𝑒) and 𝑂(𝑐) are true (i.e., both cause and effect occur in the actual world, despite
+whether 𝑐 causes 𝑒). Therefore, when this is the case, (ii) does the substantive work of
+establishing counterfactual dependence: it requires that 𝑒 would not have occurred had 𝑐
+not occurred, which is the “but for” test for causation (𝑒 would not have happened but
+for the occurrence of 𝑐), the dominant definition used in law for cause-in-effect (Moore,
+2024). However, the necessity of condition (ii) for 𝑐 to qualify as a cause of 𝑒 has been
+challenged by three classes of counterexamples: early preemption, late preemption, and
+symmetric overdetermination; Lewis’s causal chain account accommodates early
+
+                                             37
+preemption by requiring causation to be a continuous chain of counterfactual
+dependences between 𝑒 and 𝑜, but still faces difficulties with late preemption and
+symmetric overdetermination (Fenton-Glynn, 2021).
+
+
+3.3 Properties of counterfactual conditionals
+
+Here we review a few important properties of the counterfactual conditional.
+
+
+The contraposition of counterfactual conditionals Contraposition is the inference
+pattern that reverses a conditional and negates both parts. For example:
+
+
+                                          𝑃 →𝑄
+
+   It’s contraposition is:
+
+
+                                        ¬𝑄 → ¬𝑃
+
+   In classical propositional logic, a material conditional and its contrapositive are
+logically equivalent and therefore share the same truth value.
+
+
+                                   𝑃 → 𝑄 ≡ ¬𝑄 → ¬𝑃.
+
+   However, a counterfactual conditional being true does not in general validate its
+contrapositive. We illustrate this property using the following example.
+
+
+                                𝑃 ∶= Electricity goes out.
+
+                                𝑄 ∶= Dinner is late.
+
+   Here, 𝑃 and 𝑄 are in the present tense but should be treated as abstract
+propositional descriptions; we do not commit them to a particular time.
+   Now we write out the Would conditional in both formal notations and natural
+
+
+                                            38
+language. As a reminder, the Would conditional of “if 𝑃 then 𝑄” is read as “if 𝑃 were
+the case, then 𝑄 would be the case.” In the if-clause part, we used past subjunctive tense
+(“were to go”) to show a hypothetical or imaginary event. And in the ‘main clause (after
+“then”), we used present conditional tense (“would be”) for an hypothetical situation.
+
+
+
+
+       𝐶 ∶= 𝑃 2→ 𝑄              If electricity were to go out, dinner would be late.
+
+
+   Now we convert formal notation into a natural language sentence, which is:
+
+
+
+
+     𝐶 ∗ ∶= ¬𝑄 2→ ¬𝑃           If dinner were not later, electricity would not go out.
+
+
+   However, this 𝐶 ∗ sounds unnatural. The prospective reading of were to invites us to
+imagine a change in what happens with dinner and then consider what would follow from
+that change. Yet changing whether dinner is on time would not ordinarily alter whether
+the electricity goes out. This oddity reflects the temporal asymmetry of counterfactual
+conditionals: unless the temporal order is explicitly specified, we normally interpret the
+antecedent as preceding the consequent.
+   Therefore, we will need to use conditional perfect tense to reflect a reversed temporal
+order: the consequent proceeds the antecedent. The revised 𝐶 ∗ is:
+
+
+
+
+   𝐶 ∗ ∶= ¬𝑄 2→ ¬𝑃         If dinner were not late, electricity would not have gone out.
+
+
+   Most people would find 𝐶 more plausible than 𝐶 ∗ , suggesting that they need not
+share the same truth value; that is, counterfactual conditionals do not generally
+contrapose. The theoretical reason traces back to how we evaluate the truth values of
+
+
+                                            39
+counterfactual conditionals (see Section 3.2). 𝐶 is evaluated with respect to the closest
+possible worlds in which 𝑃 is true, that is, worlds in which the electricity goes out. We
+ask: among the possible worlds most similar to the actual world in which the electricity
+goes out, is dinner late? The answer is probably yes.7 However, when evaluating 𝐶 ∗ , we
+ask: among the possible worlds most similar to the actual world in which dinner is not
+late, did the electricity stay on? Here, we can plausibly imagine nearby worlds in which
+dinner is not late even though the electricity goes out, as well as worlds in which dinner
+is not late because the electricity stays on. Thus, the closest 𝑃 -worlds relevant to 𝐶 need
+not align with the closest ¬𝑄-worlds relevant to 𝐶 ∗ .
+
+
+The transitivity of counterfactual conditionals If a relationship 𝑅 is transitive on
+the set 𝑋, for element 𝑎, 𝑏, and 𝑐 in 𝑋, we have: if 𝑎𝑅𝑏 and 𝑏𝑅𝑐, then 𝑎𝑅𝑐.
+    Counterfactual conditionals are generally not transitive. Below is an example.
+
+
+
+
+𝐶1 ∶= 𝑃 2→ 𝑄          If today were freezing cold, Mary would be wearing a puffer jacket.
+
+𝐶2 ∶= 𝑄 2→ 𝑅          If Mary were wearing a puffer jacket today, she would be uncomfortably warm.
+
+𝐶3 ∶= 𝑃 2→ 𝑅          If today were freezing cold, Mary would be uncomfortably warm.
+
+
+    𝐶1 and 𝐶2 are likely true, but 𝐶3 is intuitively false, and therefore transitivity fails.
+The explanation is as follows based on the Stalnaker–Lewis semantics for
+counterfactuals (D. K. Lewis, 1973; Small, 1982). When we evaluate 𝐶1 , we examine
+whether 𝑄 is true in the closest relevantly similar possible worlds where 𝑃 is true (i.e.,
+worlds in which today is freezing cold), and find—given Mary’s dressing habits—that 𝑄
+is true. However, when we evaluate 𝐶2 , we examine whether 𝑅 is true in the closest
+relevantly similar possible worlds where 𝑄 is true (i.e., worlds much like today,
+
+    7
+      Admittedly, this may become less plausible with the increasing convenience of takeout. Dinner would
+well be earlier if electricity were to go out.
+
+
+                                                   40
+presumably a warm or hot day, except that Mary wears a puffer jacket), and find—given
+ordinary human physiology—that 𝑅 is true. Crucially, these closest 𝑄-worlds are not the
+𝑄-worlds reached in evaluating 𝐶1 : in the latter, Mary wears a puffer jacket on a
+freezing-cold day. Thus, although 𝑄 is true in the closest 𝑃 -worlds, the background
+conditions under which 𝑄 makes 𝑅 true have changed. Consequently, 𝐶3 does not follow.
+      Although in general counterfactual conditionals are not transitive, an important
+theoretical issue is when transitivity is valid. One special case is limited
+transitivity (“Debates over Counterfactual Principles”, 2025), which is formally expressed
+as:
+
+
+                              𝑃 2→ 𝑄, (𝑃 ∧ 𝑄) 2→ 𝑅∴𝑃 2→ 𝑅
+
+      Limited transitivity is derived from substitution of subjunctive equivalents (Starr,
+2019).
+
+
+
+
+                                               41
+      Chapter 4      An Conceptual Analysis of the Notion of Unreliability
+                                               Propagation
+
+In this chapter, we apply the philosophical method of analysis, coupled with the logic
+theories of conditionals to an analysis of the concept of unreliability propagation.
+
+
+4.1 The pre-analytical intuition of unreliability propagation
+
+Unreliability propagation exists in our intuition. For example, it is very natural for us to
+think that if a test is unreliable than the result from the test is unreliable. Or, if a
+witness if unreliable, their testimony is unreliable. Motion of unreliability propagation
+also appears in scientific writings. For example, in an account of the economic losses
+resulting from cell misidentification, the author wrote that “Cell line misidentification ...
+now compromises roughly one in five lines and renders thousands of papers potentially
+unreliable, propagating unreliable data through hundreds of thousands of
+citations” (Weiskirchen, 2026). This “if something is unreliable, then another thing is
+unreliable” is our pre-analytical intuition of unreliability propagation.
+
+
+4.2 The analysandum
+
+We will analyze the following analysandum:
+
+
+                (UP) Unreliability is propagated from 𝑥 to 𝑦 if and only if
+
+
+
+4.3 Analysis-by-decomposition: from pre-analytical intuition to conditionals
+
+First, we proposed UP-1 shown below. Up-1-i specifies that 𝑥 is unreliable. Condition
+UP-1-ii is our pre-analytical intuition about unreliability propagation expressed in the
+form of a conditional. This intuition is the most general and entity-type agnostic.
+
+
+
+
+                                              42
+                (UP-1) Unreliability is propagated from 𝑥 to 𝑦 if and only if:
+
+                (UP-1-i) 𝑥 is unreliable;
+
+                (UP-1-ii) If 𝑥 is unreliable, then 𝑦 is unreliable.
+
+   Before we proceed our analysis using the logic theories for conditionals (Egré & Rott,
+2026), we need to clarify why we did not include a third condition, that 𝑦 is unreliable.
+The reason is that we intend “𝑦 is unreliable” to follow from two conditions already
+specified. UP-1-i establishes that 𝑥 is unreliable, while UP-1-ii, “if 𝑥 is unreliable, then 𝑦
+is unreliable,” is intended to license the inference from 𝑥’s unreliability to 𝑦’s
+unreliability. Under modus ponens, the two conditions jointly entail that 𝑦 is unreliable,
+making “𝑦 is unreliable” as a separate condition redundant.
+
+
+4.4 Analysis-by-transformation: critique of the four interpretations
+
+Material implication is not a candidate.            If we treat “if 𝑥 is unreliable, then 𝑦 is
+unreliable” as a material implication, we can formulate the condition set UP-2-Mat
+below. From now on, we use U(𝑎) in our condition set to denote the proposition that 𝑎 is
+unreliable.
+
+
+              (UP-2-Mat) Unreliability is propagated from 𝑥 to 𝑦 if and only if:
+
+              (UP-2-Mat-i) U(𝑥)
+
+              (UP-2-Mat-ii) U(𝑥) → U(𝑦).
+
+   This condition set is far from sufficient. As we discussed in Section 3.2.1, UP-2-Mat-ii
+is true in three situations: (1) U(𝑥) is true and U(𝑦) is true; (2) U(𝑥) is false and U(𝑦) is
+false; and (3) U(𝑥) is false and U(𝑦) is true. Combined with UP-2-Mat-i, only the first
+situation remains. Thus, UP-2-Mat amounts to requiring that 𝑥 and 𝑦 are both
+unreliable. This is clearly insufficient for establishing unreliability propagation, since the
+unreliability of 𝑥 and 𝑦 may be entirely unrelated.
+
+                                               43
+Logical implication is a possible candidate given a background theory can be
+specified and justified. If we treat “if 𝑥 is unreliable, then 𝑦 is unreliable” as a logical
+entailment, this means that “𝑦 is unreliable” logically follows from “𝑥 is unreliable.” We
+may construct a logical system 𝐿 with a set of background assumptions or axioms Γ,
+under which “𝑦 is unreliable” logically follows from “𝑥 is unreliable.” We write out the
+condition set below.
+
+
+                (UP-2-L) Unreliability is propagated from 𝑥 to 𝑦 if and only if:
+
+                (UP-2-L-i)    U(𝑥)
+
+                (UP-2-L-ii)   Γ, U(𝑥) ⊧𝐿 U(𝑦).
+
+   We now create a simple propositional logic system to demonstrate the treatment of
+retractions based on dataset unreliability (see Case 5 in Chapter Chapter 1 and
+Section 2.1).
+   Let 𝐿 be classical propositional logic. We define:
+
+
+   • R(𝑑): The dataset is reliable.
+
+   • R(𝑐): The conclusion is reliable.
+
+   • U(𝑑): The dataset is unreliable.
+
+   • U(𝑐): The conclusion is unreliable.
+
+
+   Now we introduce an axiom that for the conclusion to be reliable, the dataset must be
+reliable.
+
+
+                                          R(𝑐) → R(𝑑)
+
+   We also introduce two more axioms to define that unreliability is equivalent to the
+absence of reliability, which is once again is a modeling choice.
+
+
+                                                 44
+                                      U(𝑑) ↔ ¬R(𝑑)
+
+                                      U(𝑐) ↔ ¬R(𝑐).
+
+   Our background theory of this simple logic system Γ is:
+
+
+                                      {R(𝑐) → R(𝑑), }
+
+                                 Γ=     U(𝑑) ↔ ¬R(𝑑),     .
+
+                                        U(𝑐) ↔ ¬R(𝑐)
+
+   We can derive the entailment that U(𝑥) leads us to U(𝑦), shown in Figure 4.1.
+
+
+
+
+Figure 4.1: The procedure for deriving a logical entailment from our simple logic system
+
+
+   Although we have established the entailment Γ, U(𝑑) ⊧𝐿 U(𝑐), its validity depends on
+the background theory Γ we specified. In our case, the Γ we specified is inadequate, as
+the axiom R(𝑐) → R(𝑑) imposes a strong requirement: for the conclusion to be reliable,
+the dataset must be reliable. However, the conclusion may remain reliable even when the
+dataset is unreliable. For example, a method may correct for the dataset’s unreliability,
+or the dataset may be only one of several datasets supporting the conclusion. To
+accommodate these possibilities, we would need to revise our axioms and specify
+additional conditions under which dataset unreliability entails conclusion unreliability.
+
+                                            45
+The burden therefore falls on the designer of the logical system to specify these
+assumptions explicitly and justify their applicability.
+   Our condition set UP-2-L remains entity-agnostic, as it does not prescribe what Γ
+must contain. Different cases of unreliability propagation may require different
+background theories, depending on the entities involved and their relationships. However,
+merely requiring the existence of a background theory is insufficient. For logical
+entailment to provide a meaningful interpretation of unreliability propagation, the
+assumptions in Γ must be justified. Thus, logical entailment remains a possible candidate
+for interpreting unreliability propagation, provided that an adequate background theory
+can be specified and justified.
+
+
+Metaphysical (broadly logical) implication is not a candidate but the more
+plausible alterations reveals unvoiced requirements.            Under the interpretation of
+metaphysical implication, “if 𝑥 is unreliable then 𝑦 is unreliable” is true when we cannot
+find in any possible world where 𝑥 is unreliable and 𝑦 is still reliable. In other word, in
+every possible world, we find 𝑥 is unreliable, 𝑦 is also unreliable. UP-2-Met-ii is
+implausibly strong since reliability is known to be context sensitive (Conee & Feldman,
+1998; Feldman, 1985; Heller, 1995). When unreliability is propagated from 𝑥 to 𝑦, we do
+not require in every possible world, that 𝑥 and 𝑦 are both unreliable.
+
+
+           (UP-2-Met) Unreliability is propagated from 𝑥 to 𝑦 if and only if:
+
+           (UP-2-Met-i) U(𝑥)
+
+           (UP-2-Met-ii)     2met (U(𝑥) ⊃ U(𝑦)).
+
+   Yet we can make a move to alter the conditional so it is more metaphysical-like.
+Although the altered conditional cannot be used as a condition, its metaphysical or
+near-metaphysical nature can help us deeper insights into our institutions about
+unreliability propagation.
+
+
+
+                                             46
+   The following is an altered conditional: If 𝑥 is known to be unreliable, then it is
+more reasonable to believe 𝑦 to be unreliable than withholding a belief about
+the reliability of 𝑦. The entity type of 𝑥 and 𝑦 need to be specified here. Using our
+prior example of dataset and conclusion. We have:
+
+
+
+
+If data 𝑥 is known to be unreliable, it is more reasonable to believe the conclusion 𝑦 drawn from it is un
+
+
+   This is an interpretation of the more shortened version: if the data is unreliable, the
+conclusion is unreliable. However, we might not find the statement plausible if we use a
+different entity type, for example, using a citation 𝑥 and a citing paper 𝑦.
+   The insight we derive from our moves so far is that we seem to have some kind of
+implicit requirements for 𝑦 to be reliable, and 𝑥 being reliable is one of them, depending
+on what 𝑥 and 𝑦 are. We formulate the requirement as: For me to regard 𝑦 as
+reliable, I require 𝑥 to be reliable. We thus reconstruct the enthymematic
+argument (Hitchcock, 1985) as the follows.
+
+
+     Explicit premise. Entity 𝑥 is known to be unreliable.
+
+     Implicit premise. For me to regard 𝑦 as reliable, I require 𝑥 to be reliable.
+
+     Conclusion. I have a reason to regard 𝑦 as unreliable.
+
+
+   At this point, we may notice the a resemblance between the role of the background
+theory Γ in the logical interpretation and the implicit premises in the enthymematic
+argument derived from the altered metaphysical interpretation. Both supply additional
+assumptions needed to connect the unreliability of 𝑥 to that of 𝑦. In our logical system,
+we introduced the axiom R(𝑐) → R(𝑑), which establishes that the reliability of the
+dataset is a necessary condition for the reliability of the conclusion. In our enthymematic
+argument, we introduced an implicit premise: “For me to regard 𝑦 as reliable, I require 𝑥
+
+
+                                             47
+to be reliable.” Both concern requirements for 𝑦 to be reliable, but there is a nuanced
+difference. The logical axiom establishes a necessary relationship between the actual
+reliability of two entities, whereas the implicit premise concerns the requirements we
+impose when judging whether an entity is reliable. The latter can provide a reason to
+regard 𝑦 as unreliable without establishing a logical entailment. More importantly, both
+analyses reveal that the inference from the unreliability of 𝑥 to the unreliability of 𝑦 relies
+on assumptions about what is required for 𝑦 to be reliable.
+
+
+Counterfactual implication gives us the ability to track
+reliability/unreliability statuses between 𝑥 and 𝑦 but fall short of determining
+unreliability propagation. Under the counterfactual interpretation, we replace our
+conditional statement “if 𝑥 is unreliable then 𝑦 is unreliable” with a counterfactual
+conditional, as shown below. UP-2-CF-ii reads as: “If 𝑥 were unreliable, 𝑦 would be
+unreliable.”
+
+
+               (UP-2-CF) Unreliability is propagated from 𝑥 to 𝑦 if and only if:
+
+               (UP-2-CF-i) U(𝑥)
+
+               (UP-2-CF-ii) U(𝑥) 2→ U(𝑦).
+
+   Unfortunately, UP-2-CF-ii has the same truth conditions as a material conditional
+due to its interaction with UP-2-CF-i. The reason is as follows. Under Lewis’s strong
+centering principle, when U(𝑥) is true in the actual world, UP-2-CF-ii is true if and only
+if U(𝑦) is also true in the actual world, because the actual world is more similar to itself
+than any other possible worlds, so the truth of U(𝑦) must hold in the actual world, and
+once this is established, the truth of the conditional is also established. Consequently,
+given UP-2-CF-i, UP-2-CF-ii does not establish any connection between the unreliability
+of 𝑥 and that of 𝑦, as jointly, they only establish that both 𝑥 and 𝑦 are unreliable.
+   This means we will need additional conditions to help establish the propagation of
+
+
+
+                                              48
+unreliability between 𝑥 and 𝑦. We propose three candidates and critique them. We use
+R(𝑥) and R(𝑦) to denote the propositions that they are reliable. Strictly speaking, we
+should use ¬U(𝑥) and ¬U(𝑦) in one of the counterfactual conditionals. Strictly speaking,
+the second counterfactual should use ¬U(𝑥) and ¬U(𝑦): an entity may occupy an
+intermediate status, satisfying neither the criteria for being reliable nor those for being
+unreliable. Nevertheless, expressing the counterfactual in terms of reliability makes it
+easier for us humans to evaluate concrete cases. We therefore use R(𝑥) and R(𝑦) instead,
+provisionally treating reliability and unreliability as complementary.
+
+
+                               Candidate A: U(𝑦) 2→ U(𝑥)
+
+                               Candidate B: R(𝑥) 2→ R(𝑦)
+
+                               Candidate C:       R(𝑦) 2→ R(𝑥)
+
+   Candidate A, the converse of UP-2-CF-ii U(𝑦) 2→ U(𝑥) is redundant.
+UP-2-CF-i and UP-2-CF-ii have already guaranteed U(𝑦), which means U(𝑦) and U(𝑥)
+are both true in the actual world. Similarly, under the strong centering principle, the
+converse behave like a material conditional and is guaranteed to be true.
+   Candidate B, the inverse of UP-2-CF-ii U(𝑥) 2→ U(𝑦) provides a strong
+support of unreliability propagation from 𝑥 to 𝑦, but is too demanding.
+Candidate B and UP-2-CF-ii together form the counterfactual dependence, as we
+discussed in Section 3.2.4. If candidate B is true, this offer strong support to track
+unreliability propagation from 𝑥 to 𝑦: We observe in all closest possible worlds where 𝑥 is
+reliable, and we found that 𝑦 is also reliable.
+   However, Candidate B is too demanding. Consider the following case: Suppose 𝑦 uses
+a flawed method 𝑥, but also contains affected by another unreliable source 𝑧. Even if 𝑥
+were reliable, 𝑦 would still be unreliable because of 𝑧. Candidate B would therefore be
+false, even though 𝑥’s unreliability has contributed to 𝑦’s unreliability.
+   There is also cases where B is true but unreliability has not propagated from 𝑥 to 𝑦.
+
+
+                                              49
+Consider the following cases. We have two papers 𝑥 and 𝑦 using the same method 𝑧. The
+method 𝑧 made 𝑥 unreliable, and it does the same to 𝑦. We observe in the closest
+possible worlds where 𝑥 is reliable (by remedying 𝑧), we also discover that 𝑦 is also
+reliable. So Candidate B is true, but unreliability has not propagated from 𝑥 to 𝑦.
+   Given the connection between counterfactual dependence and causation, we should
+also make the remark that we need not establish that 𝑥’s unreliability is a cause of 𝑦’s
+unreliability. Consider the following case: A scientist knows that paper 𝑥 is unreliable
+but nevertheless decides to use its main findings to support a key argument in their
+paper 𝑦. In this case, we may recognize that unreliability has propagated from 𝑥 to 𝑦, yet
+it seems more natural to attribute 𝑦’s unreliability to the scientist’s practice than to
+identify 𝑥’s unreliability as its cause.
+   Candidate C, the contrapositive R(𝑦) 2→ R(𝑥), is not a candidate We have
+discussed in Section 3.2.4 that the contrapositive of a true counterfactual conditional is
+not necessarily true, so Candidate C is not redundant. But there is an issue with
+Candidate C. Consider the dataset 𝑥 is unreliable because some of its instances were
+mislabeled, making the machine learning model 𝑦 produced by researchers unreliable.
+Yet in closest possible worlds, researchers discovered the issue and corrected the labels,
+making 𝑦 reliable while leaving 𝑥 still unreliable, and therefore making C false despite the
+fact that unreliability has propagated.
+   Our analysis suggests that counterfactual conditionals failed to provide necessary and
+sufficient conditions for unreliability propagation. Neither Candidate B nor Candidate C
+is necessary, as we showed in cases where unreliability may propagate from 𝑥 to 𝑦 even
+when either is false. Nor are they sufficient, since the reliability statuses of 𝑥 and 𝑦 may
+vary together across possible worlds without unreliability propagating from one to the
+other. Nevertheless, Candidate B, R(𝑥) 2→ R(𝑦), remains useful. When it is true, it may
+provide a defeasible reason to believe that unreliability has propagated from 𝑥 to 𝑦.
+
+
+
+
+                                             50
+4.5 Chapter summary
+
+This chapter presented a conceptual analysis aimed at identifying the individually
+necessary and jointly sufficient conditions for unreliability to propagate from an entity 𝑥
+to an entity 𝑦, irrespective of their types. We developed UP-1 from our basic
+pre-analytical intuition about unreliability propagation. Its first condition Up-1-i states
+that 𝑥 is unreliable, and its second condition Up-1-ii states that if 𝑥 is unreliable, then 𝑦
+is unreliable. Drawing on conditional logic and analysis-by-transformation, we
+investigated four interpretations of the second condition: material implication, logical
+implication, metaphysical implication, and counterfactual implication, for version two of
+our analysis (UP-2).
+   Material implication is not a candidate because, together with the first condition, it
+requires only that 𝑥 and 𝑦 are both unreliable, without establishing any relationship
+between their unreliability. Logical implication remains a possible candidate, provided
+that we can specify and justify a background theory Γ under which U(𝑥) entails U(𝑦).
+The metaphysical interpretation is too strong for the context-dependent nature of
+unreliability propagation. However, an alteration of the conditional revealed an
+enthymematic argument whose implicit premise concerns the requirements an evaluator
+imposes when judging 𝑦 to be reliable. These implicit requirements resemble the
+assumptions contained in Γ, although they concern epistemic judgment rather than
+logical entailment. Finally, our investigation of counterfactual implication failed to yield
+a set of necessary and sufficient conditions for unreliability propagation. Nevertheless,
+Candidate B, R(𝑥) 2→ R(𝑦), remains potentially useful, as its truth may form a
+defeasible justification for judging that unreliability has propagated from 𝑥 to 𝑦. In the
+next chapter, we will apply the insights from this analysis to the
+Willoughby–Jansma–Hoye (WJH) protocol code glitch case.
+
+
+
+
+                                             51
+       Chapter 5       Case Study Part II: Case Background and Data Curation
+
+This chapter introduces the Willoughby–Jansma–Hoye (WJH) code glitch case and
+describes the curation of a dataset of 284 publications citing the WJH protocol with
+expert annotations assessing their risk of unreliability propagation, resulting in a binary
+verdict: at risk or not at risk. We also describe our observations from the curation
+process, including: the categorization of the publications, the relationship between
+categories and the risk labels, and disagreement between two annotators.
+   Reuse policy of ACM publications8 states: “Authors can reuse any portion of their
+own work in a new work of their own (and no fee is expected) as long as a citation and
+DOI pointer to the Version of Record in the ACM Digital Library are included.
+
+  • Contributing complete papers to any edited collection of reprints for which the
+        author is not the editor, requires permission and usually a republication fee.
+
+  • Authors can include partial or complete papers of their own (and no fee is
+        expected) in a dissertation as long as citations and DOI pointers to the Versions of
+        Record in the ACM Digital Library are included. Authors can use any portion of
+        their own work in presentations and in the classroom (and no fee is expected).
+
+  • Commercially produced course-packs that are sold to students require permission
+        and possibly a fee.”
+
+   The following authors and contributors are referenced in this chapter: Heng Zheng
+(HZ), Yuanxi Fu (YF), M. Janina Sarol (MJS), Ellie Vandel (EV), and Jodi Schneider
+(JS). As the work presented here is collaborative, we use the first-person plural pronoun
+“we” for collaborative effort and “I” or “YF” where it is necessary to specifically identify
+the authors individual contributions. This is different from other chapters, where “we” is
+used more consistently.
+
+   8
+       https://authors.acm.org/author-resources/author-rights
+
+
+                                                    52
+5.1 Case background
+
+In late 2019, a paper published in Organic Letters (Neupane et al., 2019) reported a code
+glitch in the widely used Willoughby–Jansma–Hoye (WJH) computational chemistry
+protocol for calculating nuclear magnetic resonance (NMR) chemical shifts. The study
+found that the protocol’s Python scripts produced different results depending on the
+operating system (Windows, macOS, or Linux). Further investigation traced the issue to
+Python Script D, which calculates Boltzmann-weighted average chemical shifts using two
+types of output files for each conformer (a possible spatial arrangement of a molecule):
+an NMR file containing calculated chemical shifts (e.g., 1b-nmr-conf-1.out) and a
+frequency/optimization (freq/opt) file containing information needed to determine its
+Boltzmann weight (e.g., 1b-opt_freq-conf-1.out). To calculate the weighted average
+correctly, Script D must match the NMR and freq/opt files belonging to the same
+conformer. However, the 2014 version of Script D relied on the order in which the Python
+function glob.glob() returned the files, assuming that the NMR and freq/opt files of
+the same conformer would occupy corresponding positions in their respective lists. This
+assumption failed on some operating systems, including Ubuntu 16 and macOS Mojave,
+because the order of files returned by glob.glob() is not guaranteed. Consequently, the
+script could pair the NMR file of one conformer with the freq/opt file of another,
+producing incorrect results. A 2020 addendum to the original protocol (Willoughby
+et al., 2020) provided a corrected version of Script D that explicitly matched files using
+the conformer identifiers in their filenames. The WJH protocol was described as “one of
+the most read and highly cited works in the field” (Marcarino et al., 2020). The discovery
+therefore raised concerns about the potential effects of the code glitch on previously
+published research and attracted media attention, prompting headlines such as “A Code
+Glitch May Have Caused Errors in More Than 100 Published Studies” (Bender, 2019).
+
+
+
+
+                                            53
+5.2 Why study this case?
+
+This case originates in chemistry, where my domain expertise proved especially useful.
+The source of unreliability is relatively straightforward: it is localized within a single
+component of the protocol, namely, Python Script D. Moreover, the issue is readily
+communicable to computer scientists, information scientists, and other non-chemists, as
+it requires only minimal domain knowledge to grasp: At a high level, it suffices to
+understand that the WJH protocol consists of multiple steps, and that the unreliability is
+confined to just one of them.
+
+
+5.3 Dataset curation
+
+5.3.1 Collecting the publications and metadata
+
+On July 6, 2023, we identified publications citing Willoughby et al., 2014 and retrieved
+the metadata of 277 citing publications from Web of Science (WoS) and 285 citing
+publications from Scopus. After merging the dataset and removing duplicate items, 286
+citing publications remained. Later, we removed 2 publications that are not in English,
+leaving 284 citing publications in our final dataset (Zheng, Fu, Vandel, & Schneider,
+2024). HZ downloaded all publications’ PDFs for me (YF) to annotate.
+
+
+5.3.2 Annotation by first chemistry expert
+
+I served as the first chemistry expert. I used publication metadata and full texts to assess
+the risk of unreliability propagating from the WJH protocol to citing publications. I first
+examined how the WJH protocol was cited in each publication. Based on the citation
+context, I inferred the significance of the WJH protocol to the citing publication and
+made an initial determination of the risk of unreliability propagation. I then sought
+counter-evidence to challenge this determination, drawing on publication metadata and
+other information from the full text. For each publication, I recorded my answers to four
+questions: (1) Does the paper state in the citation context that it used Willoughby–Hoye
+
+                                              54
+protocol script D? (2) Can the citation context rule out the possibility that the authors
+used the original Willoughby–Jansma–Hoye protocol script D? (3) Is there other evidence
+that rules out the possibility that the publication was affected by the code glitch? (4)
+Considering all available evidence, can the possibility that the publication was affected
+by the code glitch be ruled out? I recorded a ‘Yes” or ‘No” answer to each question,
+supplemented by notes in the annotation spreadsheet to explain my reasoning. The final
+annotation was a binary classification: ‘at risk” or ‘not at risk” (of unreliability
+propagation). The annotation took me about 40+ hours to complete.
+
+
+5.3.3 Enriching the dataset with manually extracted citation contexts
+
+Given the significance of citation context in my annotation process, we decided to extract
+citation contexts from those publications. HZ manually extracted citation contexts of
+Willoughby et al., 2014, resulting in 401 citation contexts extracted from 284
+English-language full texts. Heng Zheng also recorded whether all citations occurred in
+the introduction section in the process. To be more specific, a citation context is a text
+(typically a clause, one or more sentences, or a paragraph) Small, 1982 in a scientific
+publication that contains a reference to the citation. Figure 5.1 shows an example.
+Author names, publication year, or bibliography entry number may be used as the
+citation marker for a publication.
+
+
+
+
+Figure 5.1: The publication “Fu & Schneider, 2020” uses the citation marker “25” to refer
+to Guillen et al., 2019 in the bibliography. The text in blue is the citation context of
+Guillen et al., 2019. “[8, 25]” is the full citation marker.
+
+
+
+                                              55
+5.3.4 Adding annotation by the second chemistry expert
+
+We later involved a second chemistry expert (EV) to double-annotate a representative
+sample of the publications. We first developed an annotation protocol (Fu, Zheng, et al.,
+2024). To select a representative sample, MJS transformed the citation contexts in the
+full dataset into embeddings, clustered them using BERTopic (Grootendorst, 2022) with
+the HDBSCAN algorithm, and selected representative citation contexts based on the
+cluster centroids.9
+   EV then annotated the 77 publications associated with the selected citation contexts,
+spending 9.5 hours on the task. YF, EV, and JS met twice to discuss and reconcile
+disagreements between the two chemistry experts. The initial interannotator agreement
+(Cohen’s kappa) was 0.34 (fair agreement Landis & Koch, 1977), which increased to 0.70
+(substantial agreement Landis & Koch, 1977) after resolving disagreements on which the
+experts could reach a consensus.
+   The two chemistry experts initially disagreed on 24 of the 77 publications. Through
+discussion, we resolved 15 disagreements, leaving nine unresolved cases. For these
+remaining cases, JS developed a reconciliation policy in consultation with YF. YF then
+applied this policy to update the annotations, producing the silver-standard dataset. The
+final dataset classified 86 publications (30.3%) as “at risk” and 198 (69.7%) as “not at
+risk” of unreliability propagation. The full dataset is available in the Illinois Data
+Bank (Zheng, Fu, Vandel, & Schneider, 2024).
+
+
+5.4 Results
+
+5.4.1 Categorization of the publications by how they cite the WJH protocol
+           and unreliability propagation assessment
+
+I categorized the 284 publications largely based on what they cited the WJH protocol
+for. Four main categories were identified: step-scoped citation, protocol-level citation,
+   9
+       https://doi.org/10.5281/zenodo.13921537
+
+
+                                                 56
+background citation, review article, and Python script. The remaining citations were
+grouped into the category “other.”
+   Step-scoped citation is the largest category with 96 publications (34%). Step-scoped
+citations cite the WJH protocol for one methodological step. The most frequently cited
+steps were Boltzmann-weighted averaging (24 publications), conformational search (20
+publications), goodness-of-fit assessment (16 publications), and scaling and referencing
+factors (15 publications). Of particular relevance are publications that cite the WJH
+protocol for the Boltzmann-weighted averaging step, which is implemented by Python
+Script D. We regard these publications as being at elevated risk of unreliability
+propagation, whereas citations to other methodological steps indicate a lower risk. The
+judgment concerning the Boltzmann-weighted averaging step requires further elaboration.
+   Previously, objections have been raised that citing the WJH protocol for
+Boltzmann-weighted averaging does not establish that a paper used Python Script D,
+much less that the paper was affected by the script’s glitch, which occurs only under
+certain file-ordering conditions. However, in comparison to why WJH protocol was cited
+for other steps, citing WJH protocol for the Boltzmann-weighted average step does
+increase the risk of unreliability propagation in my opinion. Therefore, I deemed this type
+of citation to imply risk of unreliability propagation, in absence of other counter-evidence.
+   Protocol-level citations refer to the WJH protocol as the methodological resource
+without identifying a particular step of the protocol. They accounted for 25% of the
+cases (72 publications). Similar to the previous case, I find the following judgment
+compelling: if a paper cites the WJH protocol as the methodological resource, it is more
+reasonable to believe that unreliability has propagated to the paper than to withhold
+belief about whether such propagation occurred. We therefore regard protocol-level
+citations as evidence of elevated risk of unreliability propagation.
+   Background information citations account for 65 publications (23%). Background
+citations referred to the WJH protocol to provide contextual information. Background
+
+
+                                             57
+citation is a well-established category in citation intent and citation function
+studies (shotton_cito_2010; cohan_structural_2019). Because background
+citations do not establish that the citing publications used the WJH protocol, much less
+Python Script D, we assessed these publications as having no risk of unreliability
+propagation, which is consistent with the treatment of background citations in prior
+work (Budd et al., 2016).
+   Twenty-eight publications (10%) are review articles. We considered them not at risk
+of unreliability propagation because reviews rarely, if ever, execute methodological
+procedures such as those in the WJH protocol, thereby eliminating a major pathway for
+unreliability propagation.
+   We also identified 11 publications (4%) that mentioned Python scripts in their
+citation contexts. Their risk levels varied. Some explicitly stated that they used Python
+Script D (from the original WJH protocol), while others reported modifying the Python
+scripts provided with the WJH protocol. One publication stated that it used the scripts
+from the original WJH protocol but had ̀̀validated” them using the trial example
+provided with the protocol. Another developed its own scripts, while a few reported
+using updated versions of the scripts. This variation presents a challenge for risk
+assessment. At one end of the spectrum, direct evidence of using the original Python
+scripts, particularly Script D, indicates an elevated risk of unreliability propagation. At
+the other end, using updated scripts that corrected the glitch could eliminate the risk
+associated with the original code. Assessing the risk of unreliability propagation in this
+category therefore requires particular care.
+   Lastly, we included an “Other” category covering 12 publications that were difficult to
+categorize. These included six suspected miscitations (i.e., the WJH protocol appeared to
+have been cited inappropriately given the context), two citations supporting specific
+scientific claims, and four publications directly related to this case study: the Neupane
+paper that exposed the code glitch (Neupane et al., 2019), the addendum (Willoughby
+
+
+                                               58
+et al., 2020), my previous case study of the WJH protocol (fu_finding_2021), and the
+simulation study (Marcarino et al., 2020). We assessed these publications as not at risk
+of unreliability propagation. In cases of suspected miscitation, other publications, rather
+than the WJH protocol, should have been cited. The citations supporting scientific
+claims did not indicate the use of the affected computational procedures. The four
+case-related publications examined or addressed the code glitch itself rather than relying
+on the affected code for their scientific conclusions.
+
+              Table 5.1: Categorization of publications citing the WJH protocol
+Publication category                                         Count     Percentage       Risk
+                                                                                        assessment
+
+1. Step-scoped citation                                           96            34%     Mixed
+  1.1 Boltzmann-weighted average, steps 15–16,                    24             8%     At risk
+Python Script D
+  1.2 Conformational search, steps 2–3, MacroModel                20              7%    Not at risk
+  1.3 Goodness-of-fit assessment, steps 22–24                     16              6%    Not at risk
+  1.4 Scaling and referencing factors, step 14                    15              5%    Not at risk
+  1.5 Geometry optimization and frequency                          7              2%    Not at risk
+calculation, steps 10–12
+  1.6 Basis set, steps 4–9                                         2              1%    Not at risk
+  1.7 Solvation model, steps 10–14                                 1            0.4%    Not at risk
+  1.8 GIAO method, steps 13–14, Python Script C                    3              1%    Not at risk
+  1.9 More than one step                                           8              3%    Mixed
+2. Protocol-level citation                                        72            25%     At risk
+3. Background citation                                            65            23%     Not at risk
+4. Review Article                                                 28            10%     Not at risk
+5. Python Script                                                  11             4%     Mixed
+6. Other                                                          12             4%     Not at risk
+Total                                                           284            100%     —
+Note. Each publication was assigned to one category based on how it cited the WJH protocol. Percentages
+are rounded to whole numbers unless doing so results in 0%. Risk assessments summarize the category-level
+judgments described in the text, but individual publications may be reassessed in light of counter-evidence.
+Mixed indicates that risk varies with the steps or script versions used.
+
+
+
+
+                                                    59
+      Table 5.2: Risk-elevating keywords identified through YF’s manual annotation
+Keyword cluster            Keywords
+Boltzmann weighting        Boltzmann
+Protocol-level citation    Quantum chemistry calculation; quantum chemical calculation; NMR
+                           chemical shift calculation; NMR chemical shift; NMR calculation;
+                           NMR shift prediction
+Python script              Python script; Script D; script
+
+
+5.4.2 Hand-crafted keyword dictionary
+
+Based on the risk-level categorizations, I constructed two keyword dictionaries. The first
+contains keywords associated with categories indicating elevated risk of unreliability
+propagation, including step-scoped citations related to Boltzmann-weighted averaging
+and protocol-level citations. We also included keywords related to Python scripts because
+of cases where the risk was particularly high. The keywords were selected based on my
+recollection of the annotation process.
+   The second dictionary contains keywords associated with categories believed to
+indicate reduced risk of unreliability propagation. These categories include subtypes of
+step-scoped citations that concern steps other than Boltzmann-weighted averaging.
+However, identifying keywords for negligible-risk categories, such as background citations,
+is infeasible because such citations are not associated with particular phrases.
+
+
+5.4.3 Counter-evidence
+
+In my annotation, I also considered counter-evidence before making my final assessment
+by asking myself: Can I find other reasons to rule out the possibility that the publication
+was affected by the code glitch? I found such counter-evidence for 13 publications. Seven
+cited the Neupane paper (Neupane et al., 2019) or the addendum (Willoughby et al.,
+2020): citing either the Neupane paper or the addendum demonstrates authors’
+awareness of the code glitch and therefore makes me consider such publications not at
+
+
+                                              60
+      Table 5.3: Risk-reducing keywords identified through YF’s manual annotation
+Keyword cluster                 Keywords
+Geometry optimization           Density functional theory; DFT; geometry optimization; structural
+                                optimization; free energy calculation
+Goodness-of-fit                 MAE; CMAE; R2 ; statistical error parameter
+Conformational search           Conformational search; conformational space generation; conforma-
+                                tional analysis; conformational sampling
+Solvation model                 PCM; solvation model
+Scaling     and   referencing   Scaling; slope; intercept
+factors
+Basis set                       Basis set
+GIAO method (an approx-         GIAO
+imation)
+
+
+risk of unreliability propagation. Two concerned types of spectroscopy other than NMR.
+Two required domain knowledge to determine that they could not have been affected by
+the code glitch. One reported independently verifying the script, and another reported
+developing its own script.
+
+
+5.4.4 Annotation disagreement and reconciliation policies
+
+The two annotators initially disagree on 24 cases (out of 77). The main differences are
+categorized in Table 5.4.
+   The disagreements were reconciled as follows. For step-scoped citations, we adopted
+YF’s narrow reading, making no inferences about upstream or downstream operations.
+For cases involving annotation mistakes or reassessment, we adopted EV’s annotations.
+For introduction citations, we followed YF’s approach, which emphasizes the content of
+the citation context. Given the time required for manuscript review and acceptance,
+publication after the code glitch was disclosed was not considered sufficient evidence that
+the authors were aware of it. We therefore adopted YF’s annotation. For citation
+clusters, we adopted EV’s more lenient approach, treating methodological attribution as
+
+
+                                                   61
+Table 5.4: Issues underlying the 24 initial disagreements between two annotators. Each
+publication is assigned one primary category; descriptions summarize positions expressed
+before or during reconciliation.
+Issue                YF                                 EV                               No. of
+                                                                                         cases
+Treatment of         Generally limited attribution      Sometimes inferred use of          9
+step-scoped          to the step explicitly             additional steps and scripts
+citations            associated with the citation.      from the surrounding workflow
+                                                        (e.g., authors will likely use
+                                                        Boltzmann-weighted average if
+                                                        they performed conformation
+                                                        search)
+Annotation           made mistakes (e.g.,               Supplied better rationale and      5
+mistakes and         overlooking crucial evidence)      annotation that was accepted
+reassessment         or accepted EV’s rationale and
+                     annotation as better
+Introduction         Considered whether the             Treated introductory               3
+citations            citation described methods         placement as evidence that the
+                     used in the study, regardless of   citation might serve a
+                     whether it was placed in the       background function.
+                     introduction section.
+Citation clusters    Initially did not discount         Considered whether the             3
+                     possible WJH use merely            grouped references indicated
+                     because other sources were         general methodological
+                     cited alongside it.                acknowledgment rather than
+                                                        implementation of WJH.
+Technical            Initially did not use evidence     Used evidence of independent       3
+expertise and        of technical expertise to          software development,
+modified scripts     exclude risk.                      computational expertise, or
+                                                        script modification to support
+                                                        a judgment of lower risk.
+Publication timing   Did not consider publication       Considered publication after       1
+                     after the correction sufficient    the correction a reason to
+                     evidence that corrected scripts    expect that corrected scripts
+                     were used.                         were used.
+Total                                                                                     24
+
+
+
+
+                                                62
+distributed across the cited works rather than assigning it solely to the WJH protocol.
+Among the three cases involving technical expertise, we adopted EV’s annotations in two
+cases. The exception concerned the development of new chemistry software, which we
+judged could propagate the code glitch further. We therefore retained YF’s “at risk”
+annotation. Overall, 13 final decisions matched EV’s annotations and 11 matched YF’s.
+
+
+5.5 Chapter summary
+
+In this chapter, I introduced the Willoughby–Jansma–Hoye (WJH) code glitch case and
+described the curation of a dataset of 284 publications citing the WJH protocol. Each
+publication was assigned an expert verdict of “at risk” or “not at risk” of unreliability
+propagation. I annotated all 284 publications, and a second chemistry expert annotated
+a representative sample of 77. Interannotator agreement, measured by Cohen’s kappa,
+rose from 0.34 to 0.70 after the two annotators reconciled their disagreements. A
+reconciliation policy was used to settle the remaining cases.
+   I categorized the publications based on how they cited the protocol. Publications
+citing the WJH protocol for the Boltzmann-weighted averaging step or the protocol as a
+whole were deemed at elevated risk, although this risk could be canceled by
+counter-evidence, such as evidence that the authors were aware of the code glitch.
+Background citations, review articles, and citations to steps other than
+Boltzmann-weighted averaging were used as evidence for a “not at risk” label. However,
+the second expert sometimes inferred that authors might have used additional steps of
+the protocol beyond those explicitly cited, leading to different risk assessments.
+   The binary labels obscure differences in the degree of risk within the “at risk” group.
+Moreover, only part of the dataset was double-annotated. Therefore, the labels are best
+understood as a silver standard. The dataset and these observations provide the
+empirical basis for the chapters that follow.
+
+
+
+
+                                                63
+ Chapter 6      Case Study Part III: Defeasible Reasoning based on Metadata
+                                            and Section Headings
+
+In this chapter, we turn to the construction of computational pipelines for labeling
+publications and providing justifications for those labels. The approach draws its
+conceptual foundations from defeasible inferences and defeaters (Pollock, 1987). In this
+chapter, we limit ourselves to information available from publication metadata,
+bibliography, and the section headings under which citations to the WJH protocol
+appear, leaving the treatment of citation contexts to the next chapter, which is more
+complex. We start by describing our general approach of the defeasible reasoning
+formulation and followed by a demonstration of how metadata and section headings can
+be integrated to generate justifications.
+   In this section, we consistently use “we” to refer to the author’s contribution. We use
+“UP” as an abbreviation for unreliability propagation for readability.
+
+
+6.1 Outline of the approach
+
+The approach we will take is the follows. First, we reconstruct the defeasible reasoning
+schema to show how an agent may infer from citation to the WJH protocol to UP from
+the WJH protocol to the citing paper. Then, we show a conversion from observations
+made in the annotation process to defeaters in the framework of defeasible reasoning.
+The we form defeasible reasoning schema
+
+
+6.2 Defeasible reasoning schema and the placement of defeaters
+
+We begin with the most primitive defeasible inference rule, which states that citing 𝑥
+provides a defeasible reason to conclude that unreliability propagates from 𝑥 to 𝑦.
+Following Modgil and Prakken (modgil_aspic_2014), we use ⇒ to represent
+defeasible rules and → to represent strict rules.
+
+
+
+                                               64
+                               𝑟1𝑎 ∶   Cite(𝑦, 𝑥) ⇒ UP(𝑥, 𝑦)
+
+   This rule can be decomposed into two inference rules: 𝑟2𝑎 , which infers that 𝑦 uses 𝑥
+from the citation, and 𝑟2𝑏 , which infers unreliability propagation from such use. Here, we
+understand use as the employment of a resource in conducting research, rather than
+merely citing or discussing it. This decomposition allows us to distinguish between the
+inference from citation to use and the inference from use to unreliability propagation,
+thereby identifying more precisely where defeaters can intervene.
+
+
+                               𝑟2𝑎 ∶   Cite(𝑦, 𝑥) ⇒ Use(𝑦, 𝑥)
+
+                               𝑟2𝑏 ∶   Use(𝑦, 𝑥) ⇒ UP(𝑥, 𝑦)
+
+   We identify two sources of defeaters from our annotation process: categories
+associated with the “not at risk” label and counter-evidence. Below, we analyze three
+defeaters: authors’ awareness of the code glitch, an article’s status as a review, and
+citations appearing only in the introduction section. The first is derived from
+counter-evidence, the second from categories associated with the “not at risk” label, and
+the third from a heuristic proposed by my colleague Heng Zheng (Zheng, Fu, Sarol, et al.,
+2024).
+   First, authors’ awareness of the code glitch is an undercutting defeater of 𝑟1𝑎 .
+We draw evidence of authors’ awareness of the code glitch from citations to either the
+paper (Neupane et al., 2019) that exposed the code glitch or the addendum (Willoughby
+et al., 2020). We represent these relationships as the follows. We use 𝑛 to represent an
+instance of a rule: a defeater does not undercut the rule but rather an instance of the
+rule (modgil_aspic_2014).
+
+
+
+
+                                             65
+                      𝑢1 ∶ AwareOfProblem(𝑦, 𝑥) → ¬𝑛(𝑟1𝑎
+                                                      𝑦,𝑥
+                                                          )
+
+                      𝑟3 ∶ Cite(𝑦, 𝑥) ∧ CiteReportsOrAddendum(𝑦)
+
+                            ⇒ AwareOfProblem(𝑦, 𝑥)
+
+
+
+   Second, review status is an undercutting defeater of 𝑟2𝑎 . Since reviews are unlikely
+to execute a computational protocol the like of the WJH protocol, being a review
+provides a reason defeats the inference from Cite(𝑦, 𝑥) to Use(𝑦, 𝑥).
+
+
+
+                               𝑢2 ∶   Review(𝑦) → ¬𝑛(𝑟2𝑎
+                                                      𝑦,𝑥
+                                                          )
+
+   Third, introduction-only citations constitute another undercutting defeater of 𝑟2𝑎 .
+When all citations to 𝑥 appear in the introduction of 𝑦, they are more likely to serve as
+background information than to indicate actual use of 𝑥. Yet this new inference rule,
+based on the defeater, can itself be undercut. In two publications examined by Zheng et
+al. (Zheng, Fu, Sarol, et al., 2024), all citations to the WJH protocol appeared in the
+introduction, but the citation text indicated the use of the WJH protocol. This provides
+a reason to challenge the inference from citation location to non-use.
+
+
+
+                            𝑢3 ∶   IntroOnly(𝑦, 𝑥) ⇒ ¬𝑛(𝑟2𝑎
+                                                         𝑦,𝑥
+                                                             )
+
+
+
+6.3 Computational pipelines
+
+Using our dataset (Zheng, Fu, Vandel, & Schneider, 2024), we implemented a prototype
+computational pipeline in Python to connect the information documented in the datasets
+to the defeaters described above and generate publication-level verdict and justifications.
+   The pipeline first addresses data quality issues in the two source files. The metadata
+file, Willoughby2014_286citing_publications.csv, contains the metadata (e.g.,
+
+                                            66
+authors, title, journal name, etc.) of the 286 publications, with DOI as the primary key.
+The citation context file, Willoughby2014_citation_contexts.csv, contains 401
+citation context occurrences across 284 publications that exclude the two
+Chinese-language articles. It also contains answers to five questions (listed below) which
+are pertinent to risk assessment.
+
+  • Is it a review according to Scopus? (retrieval date: November 25, 2023)
+
+  • Is it a review according to WoS? (retrieval date: November 25, 2023)
+
+  • Do at least one of Neupane et al., 2019 or Willoughby et al., 2020 appear in the
+     bibliography according to Scopus?
+
+  • Do at least one of Neupane et al., 2019 or Willoughby et al., 2020 appear in the
+     bibliography according to WoS?
+
+  • Does the introduction section contain all the citations to Willoughby et al., 2014?
+
+   The citation context file contains more than the citation contexts data. It repeats
+publication-level attributes (five questions plus others) alongside cc-level attributes, and
+these repeated attributes depend on DOI alone. This structure admits data
+inconsistency: 13 publications had conflicting values for column “Does the introduction
+section contain all the citations to Willoughby et al., 2014?”. To mitigate the issue, the
+pipeline extracts a separate publication-level table from the citation context file and
+excludes the 13 publications with inconsistencies. It also standardizes DOI capitalization
+and removes surrounding whitespace to prepare the linkage with the metadata file. We
+also excludes the two Chinese-language articles records without corresponding citation
+contexts, leaving the cleaned file with 271 publications.
+   The resulting records are joined with the metadata file. The pipeline then constructs
+indicators of authors’ awareness of the code glitch, review status, and introduction-only
+citations. Awareness is inferred when either Scopus or Web of Science records a citation
+
+                                             67
+to the paper reporting the code glitch or the addendum. Similarly, a publication is
+treated as a review if either database identifies it as such. Introduction-only status is
+taken from the corresponding annotation. For each satisfied condition, the pipeline
+generates a template-based justification identifying the publication, judging it “not at
+risk,” and stating the reason based on the formulations above. When multiple conditions
+are satisfied, all corresponding justifications are retained, which differs from the
+treatment in Zheng, Fu, Sarol, et al. (2024). When none is satisfied, the publication
+remains judged “at risk”: the evidence examined supplies no identified reason to defeat
+the inference from citation to UP. This default judgment is itself defeasible, since
+additional evidence, including the content of citation contexts, may warrant revising it.
+   We present each assessment as an assessment card to make its reasoning clear and
+readable. Each card identifies the publication and presents its justifications and final
+verdict in natural language, alongside a visualization of the reasoning using formal
+notation. The justification messages and verdict are read directly from the pipeline’s
+CSV output, chpt6-results.csv, and the cards are generated as individual PNG files.
+The verdict is displayed simply as “at risk” or “not at risk,” while the justification
+messages state the grounds for the judgment and acknowledge defeasibility where
+applicable. The visualization shows which inference is undercut; when no defeater is
+identified, it shows the default inference remaining undefeated.
+   Figures 6.1–6.5 illustrate five outputs. The first three isolate the contribution of each
+defeater: Liu et al. (2020) satisfies the awareness condition alone, Jonas et al. (2022) the
+review condition alone, and Lomas (2014) the introduction-only condition alone.
+Awareness undercuts the inference from citation to UP, 𝑟1𝑎 , whereas review status and
+introduction-only citations undercut the inference from citation to use, 𝑟2𝑎 . The
+introduction-only justification explicitly acknowledges that citation text indicating actual
+use could defeat the reason supplied by citation location. Matsuo et al. (2017) illustrates
+the default judgment when none of the three indicators is positive. Finally, Kim et al.
+
+
+                                             68
+(2020) illustrates how the pipeline retains both awareness and review justifications for one
+publication. These justifications challenge different steps in the reasoning; retaining both
+makes the grounds for the verdict explicit without assigning a higher confidence score.
+
+
+
+
+                                            69
+Figure 6.1: Assessment card for Liu et al. (2020). Evidence suggesting awareness of the
+code glitch undercuts the inference from citation to UP.
+
+
+
+
+                                          70
+Figure 6.2: Assessment card for Jonas et al. (2022). Review status undercuts the inference
+from citation to use.
+
+
+
+
+                                           71
+Figure 6.3: Assessment card for Lomas (2014). Introduction-only citations provide a
+defeasible reason to undercut the inference from citation to use.
+
+
+
+
+Figure 6.4: Assessment card for Matsuo et al. (2017). The publication remains judged at
+risk because none of the three conditions supplies a defeater.
+
+                                          72
+Figure 6.5: Assessment card for Kim et al. (2020). Awareness and review status provide
+two distinct justifications for the same verdict.
+
+
+
+
+                                         73
+6.4 Code availability
+
+Relevant code can be found in GitHub repository.
+
+
+6.5 Chapter summary
+
+
+
+
+                                         74
+         Chapter 7 Case Study Part III: Adding Citation Contexts
+
+7.1 What is a citation context?
+
+7.2 Approach I: keyword dictionary
+
+7.3 Approach II: leveraging LLM reasoning
+
+7.4 Provide justifications with a logic artifact
+
+7.5 Chapter summary
+
+
+
+
+                                       75
+                        Chapter 8 Conclusions*
+
+8.1 Commentary on conceptual inquiry in the age of AI
+
+8.2 Future work
+
+
+
+
+                                   76
+                                       References
+
+Alkhawaldeh, R. S., AlShaqsi, J., Al-Ahmad, B., Alkhawaldeh, S. M., & Drogham, O.
+      (2025). RETRACTED ARTICLE: An attention-based multi-residual and BiLSTM
+      architecture for early diagnosis of autism spectrum disorder. Scientific Reports,
+      15(1), 33608. https://doi.org/10.1038/s41598-025-19006-6
+Allchin, D. (2001). Error types. Perspectives on Science, 9(1), 38–58.
+      https://doi.org/10.1162/10636140152947786
+Alston, W. P. (1995). How to think about reliability. Philosophical Topics, 23(1), 1–29.
+      Retrieved August 19, 2026, from https://www.jstor.org/stable/43154192
+American Type Culture Collection. (2022). Authentication of human cell lines:
+      Standardization of short tandem repeat (str) profiling [Revised 2022]. ATCC
+      Standards Development Organization. Manassas, VA.
+      https://webstore.ansi.org/standards/atcc/ansiatccasn00022022
+American Type Culture Collection Standards Development Organization Workgroup
+      ASN-0002. (2010). Cell line misidentification: The beginning of the end. Nature
+      Reviews Cancer, 10(6), 441–448. https://doi.org/10.1038/nrc2852
+Babic, Z., Capes-Davis, A., Martone, M. E., Bairoch, A., Ozyurt, I. B., Gillespie, T. H.,
+      & Bandrowski, A. E. (2019). Incidences of problematic cell lines are lower in
+      papers that use RRIDs to identify cell lines (H. Groll & P. A. Rodgers, Eds.).
+      eLife, 8, e41676. https://doi.org/10.7554/eLife.41676
+Baier, A. (1986). Trust and antitrust. Ethics, 96(2), 231–260. Retrieved August 19, 2026,
+      from https://www.jstor.org/stable/2381376
+Barbour, V., Kleinert, S., Wager, E., & Yentis, S. (2009, September). Guidelines for
+      retracting articles (tech. rep.). Committee on Publication Ethics.
+      https://doi.org/10.24318/cope.2019.1.4
+Beaney, M., & Raysmith, T. (2024, July). Analysis [Last Modified: 2024-07-18].
+      https://plato.stanford.edu/entries/analysis/?utm_source=chatgpt.com
+
+                                            77
+Benda, N. C., Novak, L. L., Reale, C., & Ancker, J. S. (2022). Trust in AI: Why we should
+       be designing for APPROPRIATE reliance. Journal of the American Medical
+       Informatics Association, 29(1), 207–212. https://doi.org/10.1093/jamia/ocab238
+Bender, M. (2019). A code glitch may have caused errors in more than 100 published
+       studies. Vice. Retrieved November 3, 2019, from
+       https://www.vice.com/en_us/article/zmjwda/a-code-glitch-may-have-caused-
+       errors-in-more-than-100-published-studies
+Bortolus, A. (2008). Error cascades in the biological sciences: The unwanted consequences
+       of using bad taxonomy in ecology. AMBIO: A Journal of the Human Environment,
+       37 (2), 114–118. https://doi.org/10.1579/0044-7447(2008)37[114:ECITBS]2.0.CO;2
+Bracegirdle, J., Robertson, L. P., Hume, P. A., Page, M. J., Sharrock, A. V.,
+       Ackerley, D. F., Carroll, A. R., & Keyzers, R. A. (2019). Lamellarin Sulfates from
+       the Pacific Tunicate Didemnum ternerratum. Journal of Natural Products, 82(7),
+       2000–2008. https://doi.org/10.1021/acs.jnatprod.9b00493
+Budd, J. M., Coble, Z., & Abritis, A. (2016). An investigation of retracted articles in the
+       biomedical literature. Proceedings of the Association for Information Science and
+       Technology, 53(1), 1–9. https://doi.org/10.1002/pra2.2016.14505301055
+Byrne, J. A., & Labbé, C. (2017). Striking similarities between publications from China
+       describing single gene knockdown experiments in human cancer cell lines.
+       Scientometrics, 110(3), 1471–1493. https://doi.org/10.1007/s11192-016-2209-6
+Cabanac, G. (2024). Chain retraction: How to stop bad science propagating through the
+       literature. Nature, 632(8027), 977–979.
+       https://doi.org/10.1038/d41586-024-02747-1
+Cabanac, G., Clausse, A., Jégou, L., & Maisonobe, M. (2023). The geography of
+       retracted papers: Showcasing a crossref–dimensions–NETSCITY pipeline for the
+       spatial analysis of bibliographic data. STI 2023: 27th International Conference on
+       Science, Technology and Innovation Indicators.
+
+
+                                            78
+Capes-Davis, A., Theodosopoulos, G., Atkin, I., Drexler, H. G., Kohara, A.,
+      MacLeod, R. A. F., Masters, J. R., Nakamura, Y., Reid, Y. A., Reddel, R. R., &
+      Freshney, R. I. (2010). Check your cultures! A list of cross-contaminated or
+      misidentified cell lines. International Journal of Cancer, 127 (1), 1–8.
+      https://doi.org/10.1002/ijc.25242
+Castelvecchi, D. (2026). AI cracks 80-year-old mathematics challenge — researchers are
+      astonished. Nature, 654(8117), 15–16. https://doi.org/10.1038/d41586-026-01651-0
+Clark, T., Ciccarese, P. N., & Goble, C. A. (2014). Micropublications: A semantic model
+      for claims, evidence, arguments and annotations in biomedical communications.
+      Journal of Biomedical Semantics, 5(1), 28.
+      https://doi.org/10.1186/2041-1480-5-28
+Cochrane Collaboration. (2026). Editorial policies. Retrieved May 25, 2025, from
+      https://www.cochranelibrary.com/cdsr/editorial-policies
+Conee, E., & Feldman, R. (1998). The generality problem for reliabilism. Philosophical
+      Studies: An International Journal for Philosophy in the Analytic Tradition, 89(1),
+      1–29. Retrieved September 29, 2026, from https://www.jstor.org/stable/4320806
+Debates over Counterfactual Principles. (2025, August). Retrieved August 20, 2026, from
+      https://plato.stanford.edu/entries/counterfactuals/debates.html?utm_source=
+      chatgpt.com
+Ding, Y., Zhang, H., & Qiu, T. (2025). Retraction Note: Deep learning approach to
+      predict autism spectrum disorder: A systematic review and meta-analysis. BMC
+      Psychiatry, 25(1), 1104. https://doi.org/10.1186/s12888-025-07633-2
+Dung, P. M. (1995). On the acceptability of arguments and its fundamental role in
+      nonmonotonic reasoning, logic programming and n-person games. Artificial
+      Intelligence, 77 (2), 321–357. https://doi.org/10.1016/0004-3702(94)00041-X
+Durán, J. M. (2026). Beyond transparency: Computational reliabilism as an externalist
+      epistemology of algorithms. In J. M. Durán & G. Pozzi (Eds.), Philosophy of
+
+
+                                            79
+       Science for Machine Learning: Core Issues and New Perspectives (pp. 55–79).
+       Springer Nature Switzerland. https://doi.org/10.1007/978-3-032-03083-2_4
+Egré, P., & Rott, H. (2026). The logic of conditionals (E. N. Zalta & U. Nodelman, Eds.;
+       Summer 2026). Retrieved June 19, 2026, from
+       https://plato.stanford.edu/archives/sum2026/entries/logic-conditionals/
+El-Geneedy, M., Moustafa, H. E.-D., Khater, H., Abd-Elsamee, S., & Gamel, S. A.
+       (2026). Retraction Note: A comprehensive explainable AI approach for enhancing
+       transparency and interpretability in stroke prediction. Scientific Reports, 16(1),
+       11622. https://doi.org/10.1038/s41598-026-47615-2
+Elias, R. S., Saeed, B. A., Kamounah, F. S., Duus, F., & Hansen, P. E. (2020). Strong
+       intramolecular hydrogen bonds and steric effects involving C�S groups: An NMR
+       and computational study. Magnetic Resonance in Chemistry, 58(2), 154–162.
+       https://doi.org/10.1002/mrc.4959
+Fanelli, D., Ioannidis, J. P., & Goodman, S. (2018). Improving the integrity of published
+       science: An expanded taxonomy of retractions and corrections. European Journal
+       of Clinical Investigation, 48(4), e12898. https://doi.org/10.1111/eci.12898
+Fedesoriano. (n.d.). Stroke prediction dataset [Kaggle dataset].
+       https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset
+Feldman, R. (1985). Reliability and justification. The Monist, 68(2), 159–174. Retrieved
+       August 19, 2026, from https://www.jstor.org/stable/27902909
+Fenton-Glynn, L. (2021). Causation. Cambridge University Press.
+Fitzner, K. (2007). Reliability and validity a quick review. The Diabetes Educator, 33(5),
+       775–780. https://doi.org/10.1177/0145721707308172
+Fu, Y., & Schneider, J. (2025). Engineering the Reproducible Literature Review Section
+       for Scholarly Publications and Grant Applications. Proceedings of the AAAI
+       Symposium Series, 5(1), 360–364. https://doi.org/10.1609/aaaiss.v5i1.35612
+
+
+
+
+                                            80
+Fu, Y., Schneider, J., & Sarraf, I. (2024, November).
+       Infoqualitylab/JCDL-2024-triage-approach: V1.0.1.
+       https://doi.org/10.5281/zenodo.14166498
+Fu, Y., Zheng, H., Sarol, M. J., & Schneider, J. (2024). Protocol: Annotation by
+       chemistry expert #2 for addressing unreliability propagation in scientific digital
+       libraries [protocol]. https://hdl.handle.net/2142/123380
+Gettier, E. L. (1963). Is justified true belief knowledge? Analysis, 23(6), 121–123.
+       https://doi.org/10.1093/analys/23.6.121
+Gibson, A. D., White, N. M., Collins, G. S., & Barnett, A. G. (2026). Evidence of
+       unreliable data and poor data provenance in clinical prediction model research
+       and clinical practice. BMC Medicine, 24(1), 386.
+       https://doi.org/10.1186/s12916-026-04981-y
+Gihawi, A., Ge, Y., Lu, J., Puiu, D., Xu, A., Cooper, C. S., Brewer, D. S., Pertea, M., &
+       Salzberg, S. L. (2023). Major data analysis errors invalidate cancer microbiome
+       findings. mBio, 14(5), e01607–23. https://doi.org/10.1128/mbio.01607-23
+Goldberg, S. (2020). Trust and reliance. In J. Simon (Ed.), The Routledge Handbook of
+       Trust and Philosophy (1st ed., pp. 97–108). Routledge.
+       https://doi.org/10.4324/9781315542294-8
+Goldman, A. I. (1979). What Is Justified Belief? In G. S. Pappas (Ed.), Justification and
+       knowledge: New studies in epistemology (pp. 1–23). Springer Netherlands.
+       https://doi.org/10.1007/978-94-009-9493-5_1
+Goldman, A. I. (2012, April). Reliabilism and contemporary epistemology: Essays. Oxford
+       University Press. https://doi.org/10.1093/acprof:oso/9780199812875.001.0001
+Gorphe, P. (2019). A comprehensive review of Hep-2 cell line in translational research for
+       laryngeal cancer. American Journal of Cancer Research, 9(4), 644–649. Retrieved
+       November 28, 2025, from https://pmc.ncbi.nlm.nih.gov/articles/PMC6511639/
+
+
+
+
+                                            81
+Gottweis, J., Weng, W.-H., Daryin, A., Tu, T., Palepu, A., Sirkovic, P., Myaskovsky, A.,
+      Weissenberger, F., Rong, K., Tanno, R., Saab, K., Popovici, D., Blum, J.,
+      Zhang, F., Chou, K., Hassidim, A., Gokturk, B., Vahdat, A., Kohli, P., …
+      Natarajan, V. (2025, February). Towards an AI co-scientist [arXiv:2502.18864
+      [cs.AI]]. https://doi.org/10.48550/arXiv.2502.18864
+Graña Possamai, C., Cabanac, G., Perrodeau, E., Ghosn, L., Ravaud, P., & Boutron, I.
+      (2025). Inclusion of retracted studies in systematic reviews and meta-analyses of
+      interventions: A systematic review and meta-analysis. JAMA Internal Medicine,
+      185(6), 702. https://doi.org/10.1001/jamainternmed.2025.0256
+Grimblat, N., Zanardi, M. M., & Sarotti, A. M. (2015). Beyond DP4: An improved
+      probability for the stereochemical assignment of isomeric compounds using
+      quantum chemical calculations of NMR shifts. The Journal of Organic Chemistry,
+      80(24), 12526–12534. https://doi.org/10.1021/acs.joc.5b02396
+Grootendorst, M. (2022). Bertopic: Neural topic modeling with a class-based tf-idf
+      procedure [preprint]. https://doi.org/10.48550/arXiv.2203.05794
+Hassan, A., Ahmad, S. G., Munir, E. U., Khan, I. A., & Ramzan, N. (2026). Retraction
+      Note: Predictive modelling and identification of key risk factors for stroke using
+      machine learning. Scientific Reports, 16(1), 12197.
+      https://doi.org/10.1038/s41598-026-47902-y
+Hawley, K. (2014). Trust, distrust and commitment. Noûs, 48(1), 1–20.
+      https://doi.org/10.1111/nous.12000
+Heller, M. (1995). The simple solution to the problem of generality. Noûs, 29(4),
+      501–515. https://doi.org/10.2307/2216284
+Hermida, L. C., Gertz, E. M., & Ruppin, E. (2022). RETRACTED ARTICLE:
+      Predicting cancer prognosis and drug response from the tumor microbiome.
+      Nature Communications, 13(1), 2896. https://doi.org/10.1038/s41467-022-30512-3
+
+
+
+
+                                           82
+Hermida, L. C., Gertz, E. M., & Ruppin, E. (2025). Retraction Note: Predicting cancer
+       prognosis and drug response from the tumor microbiome. Nature
+       Communications, 16(1), 8308. https://doi.org/10.1038/s41467-025-64170-y
+Hitchcock, D. (1985). Enthymematic arguments. Informal Logic, 7 (2).
+       https://doi.org/10.22329/il.v7i2.2707
+Holton, R. (1994). Deciding to trust, coming to believe. Australasian Journal of
+       Philosophy, 72(1), 63–76. https://doi.org/10.1080/00048409412345881
+Hook, D. W., Porter, S. J., & Herzog, C. (2018). Dimensions: Building context for search
+       and evaluation. Frontiers in Research Metrics and Analytics, 3, 23.
+       https://doi.org/10.3389/frma.2018.00023
+Hsiao, T.-K., & Schneider, J. (2021). Continued use of retracted papers: Temporal trends
+       in citations and (lack of) awareness of retractions shown in citation contexts in
+       biomedicine. Quantitative Science Studies, 2(4), 1144–1169.
+       https://doi.org/10.1162/qss_a_00155
+J M, S. L., & P, S. (2026). Retraction Note: Unveiling the potential of machine learning
+       approaches in predicting the emergence of stroke at its onset: A predicting
+       framework. Scientific Reports, 16(1), 16265.
+       https://doi.org/10.1038/s41598-026-54512-1
+Jones, K. (1996). Trust as an affective attitude. Ethics, 107 (1), 4–25.
+       http://www.jstor.org/stable/2382241
+Karpagam, M., Sarumathi, S., Maheshwari, A., Vijayalakshmi, K., Jagadeesh, K.,
+       Bereznychenko, V., & Narayanamoorthi, R. (2026). Retraction Note: An effective
+       PO-RSNN and FZCIS based diabetes prediction and stroke analysis in the
+       metaverse environment. Scientific Reports, 16(1), 17131.
+       https://doi.org/10.1038/s41598-026-55044-4
+
+
+
+
+                                             83
+Korch, C. T., & Capes-Davis, A. (2021). The extensive and expensive impacts of HEp-2
+      [HeLa], intestine 407 [HeLa], and other false cell lines in journal publications.
+      SLAS Discovery, 26(10), 1268–1279. https://doi.org/10.1177/24725552211051963
+Labbé, C., Grima, N., Gautier, T., Favier, B., & Byrne, J. A. (2019). Semi-automated
+      fact-checking of nucleotide sequence reagents in biomedical research publications:
+      The Seek & Blastn tool. PLOS ONE, 14(3), e0213266.
+      https://doi.org/10.1371/journal.pone.0213266
+Landis, J. R., & Koch, G. G. (1977). The measurement of observer agreement for
+      categorical data. Biometrics, 33(1), 159–174. https://doi.org/10.2307/2529310
+Lee, J. D., & See, K. A. (2004). Trust in automation: Designing for appropriate reliance.
+      Human Factors, 46(1), 50–80. https://doi.org/10.1518/hfes.46.1.50_30392
+Lesné, S., Koh, M. T., Kotilinek, L., Kayed, R., Glabe, C. G., Yang, A., Gallagher, M., &
+      Ashe, K. H. (2006). RETRACTED ARTICLE: A specific amyloid-𝛽 protein
+      assembly in the brain impairs memory. Nature, 440(7082), 352–357.
+      https://doi.org/10.1038/nature04533
+Leung, P. T., Macdonald, E. M., Stanbrook, M. B., Dhalla, I. A., & Juurlink, D. N.
+      (2017). A 1980 letter on the risk of opioid addiction. Retrieved February 9, 2020,
+      from https://doi.org/10.1056/NEJMc1700150
+Lewis, D. (1973). Causation. Journal of Philosophy, 70(17), 556–567.
+      https://doi.org/10.2307/2025310
+Lewis, D. K. (1973). Counterfactuals. Harvard University Press.
+Mahmood, M. A., Jamel, L., Alturki, N., & Tawfeek, M. A. (2025). RETRACTED
+      ARTICLE: Leveraging artificial intelligence for diagnosis of children autism
+      through facial expressions. Scientific Reports, 15(1), 11945.
+      https://doi.org/10.1038/s41598-025-96014-6
+Marcarino, M. O., Zanardi, M. M., & Sarotti, A. M. (2020). The risks of automation: A
+      study on DFT energy miscalculations and its consequences in nmr-based
+
+
+                                            84
+      structural elucidation. Organic Letters, 22(9), 3561–3565.
+      https://doi.org/10.1021/acs.orglett.0c01001
+McCarthy, J. (1980). Circumscription—A form of non-monotonic reasoning. Artificial
+      Intelligence, 13(1), 27–39. https://doi.org/10.1016/0004-3702(80)90011-9
+McMurray, C. (2025, December). Springer nature retracts, removes nearly 40
+      publications. Retrieved August 21, 2026, from
+      https://www.thetransmitter.org/retraction/exclusive-springer-nature-retracts-
+      removes-nearly-40-publications-that-trained-neural-networks-on-bonkers-dataset/
+Meyer, C. A. (2011). Distinguishing published scholarly content with CrossMark. Learned
+      Publishing, 24(2), 87–93. https://doi.org/10.1087/20110202
+Mochurad, L., Babii, V., Boliubash, Y., & Mochurad, Y. (2026). Retraction Note:
+      Improving stroke risk prediction by integrating XGBoost, optimized principal
+      component analysis, and explainable artificial intelligence. BMC Medical
+      Informatics and Decision Making, 26(1), 217.
+      https://doi.org/10.1186/s12911-026-03630-x
+Moore, M. (2024). Causation in the Law. In E. N. Zalta & U. Nodelman (Eds.), The
+      Stanford Encyclopedia of Philosophy (Spring 2024). Metaphysics Research Lab,
+      Stanford University. Retrieved October 18, 2026, from
+      https://plato.stanford.edu/archives/spr2024/entries/causation-law/
+Mustafa, M. (n.d.). Diabetes prediction dataset [Kaggle dataset].
+      https://www.kaggle.com/datasets/iammustafatz/diabetes-prediction-dataset
+National Institute of Standards and Technology. (2023). Ai rmf playbook. National
+      Institute of Standards and Technology. Gaithersburg, MD. Retrieved August 26,
+      2026, from https://airc.nist.gov/airmf-resources/playbook/
+Neupane, J. B., Neupane, R. P., Luo, Y., Yoshida, W. Y., Sun, R., & Williams, P. G.
+      (2019). Characterization of Leptazolines A–D, Polar Oxazolines from the
+      Cyanobacterium Leptolyngbya sp., reveals a glitch with the “Willoughby–Hoye”
+
+
+                                           85
+       scripts for calculating NMR chemical shifts. Organic Letters, 21(20), 8449–8453.
+       https://doi.org/10.1021/acs.orglett.9b03216
+Notification. (2025). Acta Anaesthesiologica Scandinavica, 69(1), e14537.
+       https://doi.org/10.1111/aas.14537
+Nozick, R. (1981). Philosophical explanations. Harvard University Press.
+of Cancer, I. J. (n.d.). International Journal of Cancer Author’s Guidelines. Retrieved
+       August 26, 2026, from https://onlinelibrary.wiley.com/page/journal/10970215/
+       homepage/ForAuthors.html?utm_source=chatgpt.com#AUCEL
+of Health, N. I. (n.d.). NOT-OD-15-103: Enhancing reproducibility through rigor and
+       transparency. Retrieved August 26, 2026, from
+       https://grants.nih.gov/grants/guide/notice-files/not-od-15-103.html
+Oste, D. J., Pathmendra, P., Richardson, R. A. K., Johnson, G., Ao, Y., Arya, M. D.,
+       Enochs, N. R., Hussein, M., Kang, J., Lee, A., Danon, J. J., Cabanac, G.,
+       Labbé, C., Davis, A. C., Stoeger, T., & Byrne, J. A. (2024). Misspellings or
+       “miscellings”—Non-verifiable and unknown cell lines in cancer research
+       publications. International Journal of Cancer, 155(7), 1278–1289.
+       https://doi.org/10.1002/ijc.34995
+Pfeifer, M. P., & Snodgrass, G. L. (1990). The continued use of retracted, invalid
+       scientific literature. JAMA, 263(10), 1420–1423.
+       https://doi.org/10.1001/jama.1990.03440100140020
+Piller, C. (2025). Doctored : Fraud, arrogance, and tragedy in the quest to cure
+       Alzheimer’s. One Signal Publishers/Atria.
+Piosenka, G. (n.d.-a). [dataset] detect autism from a facial image [The original dataset
+       has been removed from Kaggle. A copy is available on Zenodo.].
+       https://doi.org/10.5281/zenodo.14890016
+
+
+
+
+                                            86
+Piosenka, G. (n.d.-b). Documentation for detect autism from a facial image
+       [Documentation accompanying the original Kaggle dataset.].
+       https://drive.google.com/file/d/1zMQgyQvYiYyxx9J5jw3jrLGTS0p19Rep/view
+Pollock, J. L. (1974). Knowledge and justification (1st ed.). Princeton University Press.
+       https://doi.org/10.1515/9781400870738
+Pollock, J. L. (1987). Defeasible reasoning [_eprint:
+       https://onlinelibrary.wiley.com/doi/pdf/10.1207/s15516709cog1104_4]. Cognitive
+       Science, 11(4), 481–518. https://doi.org/10.1207/s15516709cog1104_4
+Pollock, J. L. (2001). Defeasible reasoning with variable degrees of justification. Artificial
+       Intelligence, 133(1), 233–282. https://doi.org/10.1016/S0004-3702(01)00145-X
+Poore, G. D., Kopylova, E., Zhu, Q., Carpenter, C., Fraraccio, S., Wandro, S.,
+       Kosciolek, T., Janssen, S., Metcalf, J., Song, S. J., Kanbar, J.,
+       Miller-Montgomery, S., Heaton, R., Mckay, R., Patel, S. P., Swafford, A. D., &
+       Knight, R. (2020). RETRACTED ARTICLE: Microbiome analyses of blood and
+       tissues suggest cancer diagnostic approach [Publisher: Nature Publishing Group].
+       Nature, 579(7800), 567–574. https://doi.org/10.1038/s41586-020-2095-1
+Poore, G. D., Kopylova, E., Zhu, Q., Carpenter, C., Fraraccio, S., Wandro, S.,
+       Kosciolek, T., Janssen, S., Metcalf, J., Song, S. J., Kanbar, J.,
+       Miller-Montgomery, S., Heaton, R., Mckay, R., Patel, S. P., Swafford, A. D., &
+       Knight, R. (2024). Retraction Note: Microbiome analyses of blood and tissues
+       suggest cancer diagnostic approach. Nature, 631(8021), 694–694.
+       https://doi.org/10.1038/s41586-024-07656-x
+Porter, J., & Jick, H. (1980). Addiction rare in patients treated with narcotics. New
+       England Journal of Medicine, 302(2), 123–123.
+       https://doi.org/10.1056/NEJM198001103020221
+
+
+
+
+                                             87
+Prakken, H. (2005). A study of accrual of arguments, with applications to evidential
+       reasoning. Proceedings of the 10th international conference on Artificial
+       intelligence and law, 85–94. https://doi.org/10.1145/1165485.1165500
+Prakken, H. (2010). An abstract framework for argumentation with structured
+       arguments. Argument & Computation, 1(2), 93–124.
+       https://doi.org/10.1080/19462160903564592
+Price, G. (2021, November). EndNote adds Retraction Watch notification integration,
+       similar service available for Zotero and Papers. Retrieved March 6, 2022, from
+       https://www.infodocket.com/2021/11/10/endnote-adds-retractionwatch-
+       integration-similar-service-also-available-from-zotero/
+Rae, J. M., Creighton, C. J., Meck, J. M., Haddad, B. R., & Johnson, M. D. (2007).
+       MDA-MB-435 cells are derived from M14 Melanoma cells––a loss for breast
+       cancer, but a boon for melanoma research. Breast Cancer Research and
+       Treatment, 104(1), 13–19. https://doi.org/10.1007/s10549-006-9392-8
+Rangel-Grimaldo, M., Rivero-Cruz, I., Madariaga-Mazón, A., Figueroa, M., & Mata, R.
+       (2016). Α‑Glucosidase Inhibitors from Preussia minimoides. Journal of Natural
+       Products, 80(3), 582–587. https://doi.org/10.1021/acs.jnatprod.6b00574
+Regulation (EU) 2024/1689 of the European Parliament and of the Council of 13 June
+       2024 laying down harmonised rules on artificial intelligence and amending
+       Regulations (EC) No 300/2008, (EU) No 167/2013, (EU) No 168/2013, (EU)
+       2018/858, (EU) 2018/1139 and (EU) 2019/2144 and Directives 2014/90/EU, (EU)
+       2016/797 and (EU) 2020/1828 (Artificial Intelligence Act) (2024, June 13).
+       Retrieved August 26, 2026, from
+       https://eur-lex.europa.eu/eli/reg/2024/1689/2026-07-27/eng
+Reiter, R. (1980). A logic for default reasoning. Artificial Intelligence, 13(1-2), 81–132.
+       https://doi.org/10.1016/0004-3702(80)90014-4
+Roush, S. (2005). Tracking truth : Knowledge, evidence, and science. Clarendon Press.
+
+
+                                             88
+Ryan, M. (2020). In AI we trust: Ethics, artificial intelligence, and reliability. Science and
+       Engineering Ethics, 26(5), 2749–2767. https://doi.org/10.1007/s11948-020-00228-y
+Saleem, M. A., Javeed, A., Akarathanawat, W., Chutinet, A., Suwanwela, N. C.,
+       Kaewplung, P., Chaitusaney, S., Deelertpaiboon, S., Srisiri, W., &
+       Benjapolakul, W. (2026). Retraction Note: An intelligent learning system based
+       on electronic health records for unbiased stroke prediction. Scientific Reports,
+       16(1), 10546. https://doi.org/10.1038/s41598-026-46753-x
+Skarlinski, M. D., Cox, S., Laurent, J. M., Braza, J. D., Hinks, M., Hammerling, M. J.,
+       Ponnapati, M., Rodriques, S. G., & White, A. D. (2024, September). Language
+       agents achieve superhuman synthesis of scientific knowledge [arXiv:2409.13740
+       [cs.CL]]. https://doi.org/10.48550/arXiv.2409.13740
+Small, H. (1982). Citation context analysis. In Progress in Communication Sciences
+       (pp. 287–310, Vol. 3). Ablex Publishing Corporation.
+Sosa, E. (1999). How to defeat opposition to moore. Philosophical Perspectives, 13,
+       141–153. Retrieved August 23, 2026, from https://www.jstor.org/stable/2676100
+Sparkes, M. (2026). AI’s solution to 87-year-old riddle takes mathematicians by surprise.
+       New Scientist. Retrieved July 22, 2026, from
+       https://www.newscientist.com/article/2580374-ais-solution-to-87-year-old-riddle-
+       takes-mathematicians-by-surprise/
+Standvoss, K., Kazezian, V., Lewke, B. R., Bastian, K., Chidambaram, S., Arafat, S.,
+       Alsharif, U., Herrera-Melendez, A., Knipper, A.-D., Seco, B. M. S., Soto, N. N.,
+       Rakitzis, O., Steinecker, I., Till, P. v. K., Zarebidaki, F., Abbasi, P., &
+       Weissgerber, T. L. (2024). Shortcut citations in the methods section: Frequency,
+       problems, and strategies for responsible reuse. PLOS Biology, 22(4), e3002562.
+       https://doi.org/10.1371/journal.pbio.3002562
+Starr, W. (2019). Counterfactuals [Last Modified: 2019-01-18]. Retrieved August 28,
+       2026, from https://plato.stanford.edu/archives/fall2020/entries/counterfactuals/
+
+
+                                             89
+Talaat, F. M., Ali, Z. H., Mostafa, R. R., & El-Rashidy, N. (2024). RETRACTED
+      ARTICLE: Real-time facial emotion recognition model based on kernel
+      autoencoder and convolutional neural network for autism children. Soft
+      Computing, 28(9), 6695–6708. https://doi.org/10.1007/s00500-023-09477-y
+Thomsen, M., & Resnik, D. (1995). The effectiveness of the erratum in avoiding error
+      propagation in physics. Science and Engineering Ethics, 1(3), 231–240.
+      https://doi.org/10.1007/BF02628800
+Toulmin, S. (2003). The uses of argument (Updated ed.). Cambridge University Press.
+Tran, T. T. V., Huy, B. T., Truong, H. B., Bui, M. L., Thanh, T. T. T., & Dao, D. Q.
+      (2018). Structure analysis of sulfated polysaccharides extracted from green
+      seaweed ulva lactuca: Experimental and density functional theory studies.
+      Monatshefte für Chemie - Chemical Monthly, 149(1), 197–205.
+      https://doi.org/10.1007/s00706-017-2056-z
+Usman, M., & Balke, W.-T. (2023). On retraction cascade? Citation intention analysis as
+      a quality control mechanism in digital libraries [2 citations (Crossref/DOI)
+      [2025-09-08]]. In O. Alonso, H. Cousijn, G. Silvello, M. Marrero,
+      C. Teixeira Lopes, & S. Marchesin (Eds.), Linking Theory and Practice of Digital
+      Libraries (pp. 117–131). Springer Nature Switzerland.
+      https://doi.org/10.1007/978-3-031-43849-3_11
+Usman, M., & Balke, W.-T. (2024). Tracing the retraction cascade: Identifying
+      non-retracted but potentially retractable articles. In A. Antonacopoulos, A. Hinze,
+      B. Piwowarski, M. Coustaty, G. M. Di Nunzio, F. Gelati, & N. Vanderschantz
+      (Eds.), Linking Theory and Practice of Digital Libraries (pp. 109–126). Springer
+      Nature Switzerland. https://doi.org/10.1007/978-3-031-72437-4_7
+Usman, M., Das, M., & Balke, W.-T. (2026). Anticipating retractions in scientific
+      databases using LLM-based citation analysis. In F. Zhu, P. S. Yu, A. Nadamoto,
+      E.-p. Lim, K. Shim, W. Ding, & B. Zhang (Eds.), Database Systems for Advanced
+
+
+                                           90
+       Applications (pp. 274–284). Springer Nature.
+       https://doi.org/10.1007/978-981-95-3827-0_18
+Usman, M., usman@ifis.cs.tu-bs.de, https://orcid.org/0000-0002-6154-6256, View Profile,
+       Balke, W.-T., wolf-tilo.balke@tu-braunschweig.de,
+       https://orcid.org/0000-0002-5443-1215, & View Profile. (2025, May). Scientific
+       accountability: Detecting salient features of retracted articles. In Proceedings of
+       the 17th ACM Web Science Conference 2025 (pp. 75–85).
+       https://doi.org/10.1145/3717867.3717885
+Van Noorden, R., & Naddaf, M. (2024). Exclusive: The papers that most heavily cite
+       retracted studies. Nature, 633(8028), 13–15.
+       https://doi.org/10.1038/d41586-024-02719-5
+Vasant Bidwe, R., Mishra, S., Kamini Bajaj, S., & Kotecha, K. (2024). RETRACTED
+       ARTICLE: Attention-Focused Eye Gaze Analysis to Predict Autistic Traits Using
+       Transfer Learning. International Journal of Computational Intelligence Systems,
+       17 (1), 120. https://doi.org/10.1007/s44196-024-00491-y
+Vaughan, L., Glänzel, W., Korch, C., & Capes-Davis, A. (2017). Widespread use of
+       misidentified cell line KB (HeLa): Incorrect attribution and its impact revealed
+       through mining the scientific literature. Cancer Research, 77 (11), 2784–2788.
+       https://doi.org/10.1158/0008-5472.CAN-16-2258
+Wei, J., Wang, X., Schuurmans, D., Bosma, M., Ichter, B., Xia, F., Chi, E. H., Le, Q. V.,
+       & Zhou, D. (2022, November). Chain-of-thought prompting elicits reasoning in
+       large language models. In Proceedings of the 36th International Conference on
+       Neural Information Processing Systems (pp. 24824–24837). Neural Information
+       Processing Systems Foundation, Inc. (NeurIPS).
+       https://doi.org/10.5555/3600270.3602070
+Weiskirchen, R. (2025). Misidentified cell lines: Failures of peer review, varying journal
+       responses to misidentification inquiries, and strategies for safeguarding biomedical
+
+
+                                             91
+       research. Research Integrity and Peer Review, 10(1), 12.
+       https://doi.org/10.1186/s41073-025-00170-2
+Weiskirchen, R. (2026). Genetic insights into the economic toll of cell line
+       misidentification: A comprehensive review. Medical Sciences, 14(1), 25.
+       https://doi.org/10.3390/medsci14010025
+Weitz, D., Liu, A., Marshall, W., Peng, R., & Stodden, V. (2017). Report of the NSF
+       workshop on robustness, reliability, and reproducibility in sciencefic research
+       (tech. rep.). Beckman Center of the National Academy of Sciences, Engineering,
+       University of California, Irvine.
+       http://www.mrsec.harvard.edu/2017NSFReliability/include/NSF_Workshop_
+       Robustness.Reliability.Reproducibility.Report.pdf
+Willoughby, P. H., Jansma, M. J., & Hoye, T. R. (2014). A guide to small-molecule
+       structure assignment through computation of (¹H and ¹³C) NMR chemical shifts.
+       Nature Protocols, 9(3), 643–660. https://doi.org/10.1038/nprot.2014.042
+Willoughby, P. H., Jansma, M. J., & Hoye, T. R. (2020). Addendum: A guide to
+       small-molecule structure assignment through computation of (¹H and ¹³C) NMR
+       chemical shifts. Nature Protocols, 15(7), 2277–2277.
+       https://doi.org/10.1038/s41596-020-0293-9
+Zheng, H., Fu, Y., Sarol, M. J., Sarraf, I., & Schneider, J. (2024). Addressing unreliability
+       propagation in scientific digital libraries. Proceedings of the 24th ACM/IEEE Joint
+       Conference on Digital Libraries, 1–11. https://doi.org/10.1145/3677389.3702526
+Zheng, H., Fu, Y., & Schneider, J. (2024). Using argument graphs to audit reasoning in
+       empirical scientific publications. Proceedings of the 13th confrence of the Ontario
+       Society for the Study of Argumentatio (OSSA13). Retrieved February 16, 2026,
+       from https://jodischneider.com/pubs/ossa2024.pdf
+
+
+
+
+                                             92
+Zheng, H., Fu, Y., Vandel, E., & Schneider, J. (2024). Dataset of 286 publications citing
+      the 2014 Willoughby-Jansma-Hoye protocol.
+      https://doi.org/10.13012/B2IDB-4610831_V3
+Zhou, L., Gupta, B. B., Gaurav, A., Attar, R. W., Alhomoud, A., Arya, V., & Hsu, C.-H.
+      (2026). Retraction Note: AI-optimized GRU-based self-attention model for
+      predictive diabetes staging in IoT healthcare 5.0. Scientific Reports, 16(1), 18682.
+      https://doi.org/10.1038/s41598-026-57351-2
+
+
+
+
+                                           93
+

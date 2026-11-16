@@ -1,0 +1,79 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {Chapter 1}Introduction}{6}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Background and motivations}{6}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Research questions and approaches}{9}{subsection.1.2}%
+\contentsline {subsubsection}{\numberline {1.2.1}RQ1: What are the individually necessary and jointly sufficient conditions for unreliability to propagate from entity $x$ to entity $y$?}{9}{subsubsection.1.2.1}%
+\contentsline {subsubsection}{\numberline {1.2.2}RQ2: Given the insight generated from RQ1, how would we design a method to triage publications citing an unreliable source according to their risk of propagating unreliability and provide justifications?}{9}{subsubsection.1.2.2}%
+\contentsline {subsection}{\numberline {1.3}The organization of the remaining chapters}{10}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}A summary of contributions\textcolor {blue}{*}}{10}{subsection.1.4}%
+\contentsline {section}{\numberline {Chapter 2}Related Work}{11}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Cases that inspired the term ``unreliability propagation''}{11}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Policies and measures to address unreliability propagation}{15}{subsection.2.2}%
+\contentsline {paragraph}{Policies and measures applied to retracted scientific publications}{15}{paragraph*.12}%
+\contentsline {paragraph}{Policies and measures applied to misidentified cell lines}{16}{paragraph*.13}%
+\contentsline {paragraph}{Policies to AI systems depending on unreliable datasets}{16}{paragraph*.14}%
+\contentsline {paragraph}{Computational approaches to trace unreliability propagation}{17}{paragraph*.15}%
+\contentsline {subsection}{\numberline {2.3}The idea of reliability}{21}{subsection.2.3}%
+\contentsline {subsubsection}{\numberline {2.3.1}\textit {Reliability} grounded in \textit {Reliance}}{21}{subsubsection.2.3.1}%
+\contentsline {subsubsection}{\numberline {2.3.2}\textit {Reliability} as in the Reliabilist epistemology}{22}{subsubsection.2.3.2}%
+\contentsline {subsubsection}{\numberline {2.3.3}The counterfactual account of reliability}{23}{subsubsection.2.3.3}%
+\contentsline {subsubsection}{\numberline {2.3.4}\textit {Reliability} as consistency of test/method outputs}{24}{subsubsection.2.3.4}%
+\contentsline {subsection}{\numberline {2.4}Context dependency of reliability\textcolor {blue}{*}}{24}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Text examples reflecting a sense of unreliability propagation}{25}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Models of justification}{26}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.7}From Chain-of-Thought prompting to reasoning models\textcolor {blue}{*}}{29}{subsection.2.7}%
+\contentsline {subsection}{\numberline {2.8}Chapter summary}{29}{subsection.2.8}%
+\contentsline {section}{\numberline {Chapter 3}Methodology Preambles}{31}{section.3}%
+\contentsline {subsection}{\numberline {3.1}The method of \emph {analysis}}{31}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}Analysis-by-decomposition}{31}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.1.2}Analysis-by-transformation}{32}{subsubsection.3.1.2}%
+\contentsline {subsubsection}{\numberline {3.1.3}Counterexample construction and resolution}{33}{subsubsection.3.1.3}%
+\contentsline {subsection}{\numberline {3.2}Four interpretations of the conditional statement ``if $P$ then $Q$''}{34}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}Material implication}{35}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}Logical implication}{35}{subsubsection.3.2.2}%
+\contentsline {subsubsection}{\numberline {3.2.3}Metaphysical (or broadly logical) implication}{36}{subsubsection.3.2.3}%
+\contentsline {subsubsection}{\numberline {3.2.4}Counterfactual implication}{36}{subsubsection.3.2.4}%
+\contentsline {paragraph}{Counterfactual dependence and causation}{37}{paragraph*.16}%
+\contentsline {subsection}{\numberline {3.3}Properties of counterfactual conditionals}{38}{subsection.3.3}%
+\contentsline {paragraph}{The contraposition of counterfactual conditionals}{38}{paragraph*.17}%
+\contentsline {paragraph}{The transitivity of counterfactual conditionals}{40}{paragraph*.18}%
+\contentsline {section}{\numberline {Chapter 4}An Conceptual Analysis of the Notion of Unreliability Propagation}{42}{section.4}%
+\contentsline {subsection}{\numberline {4.1}The pre-analytical intuition of unreliability propagation}{42}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}The analysandum}{42}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Analysis-by-decomposition: from pre-analytical intuition to conditionals}{42}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Analysis-by-transformation: critique of the four interpretations}{43}{subsection.4.4}%
+\contentsline {paragraph}{Material implication is not a candidate.}{43}{paragraph*.19}%
+\contentsline {paragraph}{Logical implication is a possible candidate given a background theory can be specified and justified.}{44}{paragraph*.20}%
+\contentsline {paragraph}{Metaphysical (broadly logical) implication is not a candidate but the more plausible alterations reveals unvoiced requirements.}{46}{paragraph*.25}%
+\contentsline {paragraph}{Counterfactual implication gives us the ability to track reliability/unreliability statuses between $x$ and $y$ but fall short of determining unreliability propagation.}{48}{paragraph*.26}%
+\contentsline {subsection}{\numberline {4.5}Chapter summary}{51}{subsection.4.5}%
+\contentsline {section}{\numberline {Chapter 5}Case Study Part II: Case Background and Data Curation}{52}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Case background}{53}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Why study this case?}{54}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Dataset curation}{54}{subsection.5.3}%
+\contentsline {subsubsection}{\numberline {5.3.1}Collecting the publications and metadata}{54}{subsubsection.5.3.1}%
+\contentsline {subsubsection}{\numberline {5.3.2}Annotation by first chemistry expert}{54}{subsubsection.5.3.2}%
+\contentsline {subsubsection}{\numberline {5.3.3}Enriching the dataset with manually extracted citation contexts}{55}{subsubsection.5.3.3}%
+\contentsline {subsubsection}{\numberline {5.3.4}Adding annotation by the second chemistry expert}{56}{subsubsection.5.3.4}%
+\contentsline {subsection}{\numberline {5.4}Results}{56}{subsection.5.4}%
+\contentsline {subsubsection}{\numberline {5.4.1}Categorization of the publications by how they cite the WJH protocol and unreliability propagation assessment}{56}{subsubsection.5.4.1}%
+\contentsline {subsubsection}{\numberline {5.4.2}Hand-crafted keyword dictionary}{60}{subsubsection.5.4.2}%
+\contentsline {subsubsection}{\numberline {5.4.3}Counter-evidence}{60}{subsubsection.5.4.3}%
+\contentsline {subsubsection}{\numberline {5.4.4}Annotation disagreement and reconciliation policies}{61}{subsubsection.5.4.4}%
+\contentsline {subsection}{\numberline {5.5}Chapter summary}{63}{subsection.5.5}%
+\contentsline {section}{\numberline {Chapter 6}Case Study Part III: Defeasible Reasoning based on Metadata and Section Headings}{64}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Outline of the approach}{64}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Defeasible reasoning schema and the placement of defeaters}{64}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Computational pipelines}{66}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Code availability}{74}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Chapter summary}{74}{subsection.6.5}%
+\contentsline {section}{\numberline {Chapter 7}Case Study Part III: Adding Citation Contexts}{75}{section.7}%
+\contentsline {subsection}{\numberline {7.1}What is a citation context?}{75}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Approach I: keyword dictionary}{75}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Approach II: leveraging LLM reasoning}{75}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Provide justifications with a logic artifact}{75}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}Chapter summary}{75}{subsection.7.5}%
+\contentsline {section}{\numberline {Chapter 8}Conclusions\textcolor {blue}{*}}{76}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Commentary on conceptual inquiry in the age of AI}{76}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Future work}{76}{subsection.8.2}%
+\contentsline {section}{References}{77}{section*.35}%
