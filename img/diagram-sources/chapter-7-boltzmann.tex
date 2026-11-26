@@ -1,0 +1,24 @@
+\documentclass[border=12pt]{standalone}
+\usepackage{amsmath,newtxtext,newtxmath,tikz}
+\usetikzlibrary{arrows.meta}
+\definecolor{supportgreen}{HTML}{17634F}
+\begin{document}
+\begin{tikzpicture}[
+font=\Large,
+claim/.style={draw=black,line width=1.2pt,rounded corners=9pt,minimum width=3.1cm,minimum height=1.35cm,fill=white,align=center,inner xsep=11pt},
+rules/.style={draw=black!60,line width=1pt,rounded corners=8pt,fill=black!5,inner sep=14pt},
+flow/.style={-{Stealth[length=9pt,width=9pt]},line width=1.4pt}]
+\node[claim] (premise) at (0,0) {$\substack{\mathrm{Use}(y,x)\,\land\\\mathrm{Use}(x,z)}$};
+\node[claim] (use) at (9,0) {$\mathrm{Use}(y,z)$};
+\draw[flow] (premise.east) -- node[below=5pt] {$r_4(y,x,z)$} (use.west);
+\node[claim] (up) at (14.25,0) {$\mathrm{UP}(z,y)$};
+\draw[flow] (use.east) -- node[below=5pt] {$r_{2b}(y,z)$} (up.west);
+\node[rules] at (7.125,-2.45) {$\begin{aligned}
+r_4(y,x,z):\quad &\mathrm{Use}(y,x)\land\mathrm{Use}(x,z)\Rightarrow\mathrm{Use}(y,z)\\[5pt]
+r_{2b}(y,z):\quad &\mathrm{Use}(y,z)\Rightarrow\mathrm{UP}(z,y)
+\end{aligned}$};
+\node[claim,draw=supportgreen,fill=supportgreen!8,inner sep=14pt] (report) at (9,2.85)
+ {$\mathrm{StepScopedToBoltzmann}(y,x)$};
+\draw[flow,supportgreen] (report.south -| use.center) -- node[right=6pt,font=\itshape] {supports} (use.north);
+\end{tikzpicture}
+\end{document}

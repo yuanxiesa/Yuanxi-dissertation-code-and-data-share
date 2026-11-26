@@ -1,0 +1,19 @@
+\documentclass[border=12pt]{standalone}
+\usepackage{amsmath,newtxtext,newtxmath,tikz}
+\usetikzlibrary{arrows.meta}
+\definecolor{supportgreen}{HTML}{17634F}
+\begin{document}
+\begin{tikzpicture}[
+font=\Large,
+claim/.style={draw=black,line width=1.2pt,rounded corners=9pt,minimum width=3.1cm,minimum height=1.35cm,fill=white,align=center,inner xsep=11pt},
+rules/.style={draw=black!60,line width=1pt,rounded corners=8pt,fill=black!5,inner sep=14pt},
+flow/.style={-{Stealth[length=9pt,width=9pt]},line width=1.4pt}]
+\node[claim] (premise) at (0,0) {$\substack{\mathrm{Use}(y,x)\,\land\\\mathrm{Use}(x,z)}$};
+\node[claim] (use) at (9,0) {$\mathrm{Use}(y,z)$};
+\draw[flow] (premise.east) -- node[below=5pt] {$r_4(y,x,z)$} (use.west);
+\node[rules] at (4.5,-2.15) {$r_4(y,x,z):\quad \mathrm{Use}(y,x)\land\mathrm{Use}(x,z)\Rightarrow \mathrm{Use}(y,z)$};
+\node[claim,draw=supportgreen,fill=supportgreen!8,inner sep=14pt] (report) at (4.5,2.85)
+ {Citation context reports Boltzmann-weighted averaging\\[5pt] $r_6(c,y,x,z):\quad \mathrm{ReportsStepUse}(c,y,x,z)\Rightarrow \mathrm{Use}(y,z)$};
+\draw[flow,supportgreen] (report.south -| use.center) -- node[right=6pt,font=\itshape] {supports} (use.north);
+\end{tikzpicture}
+\end{document}
